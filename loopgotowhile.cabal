@@ -1,0 +1,47 @@
+Name:                loopgotowhile
+Version:             0.1
+Synopsis:            Interpreters for three simple programming languages created for self-educational purposes
+Homepage:            https://github.com/eugenkiss/loopgotowhile-hs
+License:             BSD3
+License-file:        LICENSE
+Author:              Eugen Kiss
+Maintainer:          eugen@eugenkiss.com
+Stability:           Experimental
+Category:            Language
+Build-type:          Simple
+Cabal-version:       >=1.2
+Description:         TODO
+
+Extra-source-files: 
+    README.md
+
+source-repository head
+    type:     git
+    location: https://github.com/eugenkiss/loopgotowhile-hs
+    branch:   master
+
+flag test
+    description: Build the tests
+    default:     False
+
+Executable test
+    hs-source-dirs:  src, tests
+    main-is:         TestSuite.hs
+    ghc-options:     -Wall
+    if !flag(test)
+        buildable:     False
+    build-depends:   
+        base >= 4.0,
+        haskell98,
+        test-framework,
+        test-framework-hunit, 
+        HUnit,
+        parsec
+    
+
+
+--Executable loop
+  
+--Executable goto
+
+--Executable while
