@@ -4,6 +4,7 @@ module Language.LoopGotoWhile.Base.Base
     , Variable (..)
     , Operator (..)
     , Assignment (..)
+    , Env
     , parser
     , evaluator
     , parseConst
@@ -24,11 +25,11 @@ import Data.STRef
 import Data.Maybe (fromJust)
 import Text.ParserCombinators.Parsec
 
+import Language.LoopGotoWhile.Util (makeStdParser)
+
 
 parser :: String -> Either String [Assignment]
-parser code = case parse parseAssignments "" code of
-    Left err  -> Left $ show err
-    Right val -> Right val
+parser = makeStdParser parseAssignments
 
 evaluator :: [Assignment] -> [Integer] -> Integer
 evaluator ast args = runST $ do
@@ -106,6 +107,8 @@ evalAssignment env (Assignment (Variable i) (Variable j) (Minus) (c)) = do
 evalAssignments :: Env s -> [Assignment] -> ST s ()
 evalAssignments env assignments = mapM_ (evalAssignment env) assignments
 
+
+-- TODO: If possible move the following code to Util
 
 type Env s = STRef s [(Index, STRef s Integer)]
 
