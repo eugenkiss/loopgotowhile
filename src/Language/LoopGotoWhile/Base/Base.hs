@@ -18,9 +18,9 @@ module Language.LoopGotoWhile.Base.Base
     , setVar
     ) where
 
-import System.IO.Unsafe (unsafeInterleaveIO)
 import Control.Monad
-import Data.IORef
+import Control.Monad.ST
+import Data.STRef
 import Data.Maybe (fromJust)
 import Text.ParserCombinators.Parsec
 
@@ -30,11 +30,11 @@ parser code = case parse parseAssignments "" code of
     Left err  -> Left $ show err
     Right val -> Right val
 
-evaluator :: [Assignment] -> [Integer] -> IO Integer
-evaluator ast args = do
+evaluator :: [Assignment] -> [Integer] -> Integer
+evaluator ast args = runST $ do
     envRef <- nullEnv
-    forM_ [1..length args] (\i ->
-        setVar envRef (toInteger i) (args !! (i-1)))
+    forM_ [1..length args] $ \i ->
+        setVar envRef (toInteger i) (args !! (i-1))
     evalAssignments envRef ast
     getVar envRef 0
 
@@ -95,7 +95,7 @@ showAssignment' i j op c =
 instance Show Assignment where show = showAssignment
 
 
-evalAssignment :: Env -> Assignment -> IO ()
+evalAssignment :: Env s -> Assignment -> ST s ()
 evalAssignment env (Assignment (Variable i) (Variable j) (Plus) (c)) = do
     xj <- getVar env j
     setVar env i (xj + c)
@@ -103,22 +103,22 @@ evalAssignment env (Assignment (Variable i) (Variable j) (Minus) (c)) = do
     xj <- getVar env j
     setVar env i (max (xj - c) 0)
 
-evalAssignments :: Env -> [Assignment] -> IO ()
+evalAssignments :: Env s -> [Assignment] -> ST s ()
 evalAssignments env assignments = mapM_ (evalAssignment env) assignments
 
 
-type Env = IORef [(Index, IORef Integer)]
+type Env s = STRef s [(Index, STRef s Integer)]
 
 -- TODO: Is there a better way to achieve this?
-nullEnv :: IO Env
-nullEnv = newIORef =<< return . zip [0..] =<< lazyRefs
+nullEnv :: ST s (Env s)
+nullEnv = newSTRef =<< return . zip [0..] =<< lazyRefs
   where lazyRefs = do
-          x  <- newIORef 0
-          xs <- unsafeInterleaveIO lazyRefs
+          x  <- newSTRef 0
+          xs <- unsafeInterleaveST lazyRefs
           return (x:xs)
 
-getVar :: Env -> Index -> IO Integer
-getVar envRef i = readIORef envRef >>= readIORef . fromJust . lookup i
+getVar :: Env s -> Index -> ST s Integer
+getVar envRef i = readSTRef envRef >>= readSTRef . fromJust . lookup i
 
-setVar :: Env -> Index -> Integer -> IO ()
-setVar envRef i v = readIORef envRef >>= flip writeIORef v . fromJust . lookup i 
+setVar :: Env s -> Index -> Integer -> ST s ()
+setVar envRef i v = readSTRef envRef >>= flip writeSTRef v . fromJust . lookup i 

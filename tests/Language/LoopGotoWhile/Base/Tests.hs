@@ -27,52 +27,52 @@ tests = [ testCase "base/defaultvalue" testDefaultvalue
 testDefaultvalue :: Assertion
 testDefaultvalue 
     = runProgram' "" [] 
-  >>= (@?= 0)
+  @?= 0
 
 testAssignment1 :: Assertion
 testAssignment1 
     = runProgram' "x0 := x1 + 1" [] 
-  >>= (@?= 1)
+  @?= 1
 
 testAssignment2 :: Assertion
 testAssignment2 
     = runProgram' "x1 := x1 + 1" [] 
-  >>= (@?= 0)
+  @?= 0
 
 testAssignment3 :: Assertion
 testAssignment3 
     = runProgram' "x1 := x1 + 1; x0 := x1 + 0" [] 
-  >>= (@?= 1)
+  @?= 1
 
 testAssignment4 :: Assertion
 testAssignment4 
     = runProgram' "x2 := x9 + 2; x1 := x2 + 2; x0 := x1 + 2" [] 
-  >>= (@?= 6)
+  @?= 6
 
 testArithmetic1 :: Assertion
 testArithmetic1 
     = runProgram' "x0 := x1 + 10" [] 
-  >>= (@?= 10)
+  @?= 10
 
 testArithmetic2 :: Assertion
 testArithmetic2 
     = runProgram' "x0 := x1 + 10; x0 := x1 - 100" []
-  >>= (@?= 0)
+  @?= 0
 
 testArguments1 :: Assertion
 testArguments1 
     = runProgram' "x0 := x2 + 0" [1,2] 
-  >>= (@?= 2)
+  @?= 2
 
 testParsing1 :: Assertion
 testParsing1 
     = runProgram' "x0:=x121+827;x1:=x2+0" [] 
-  >>= (@?= 827)
+  @?= 827
 
 testParsing2 :: Assertion
 testParsing2 
     = runProgram' "x0:=  x121 \n\n +827\n ;\n x1 :=x2 \n + 0" []
-  >>= (@?= 827)
+  @?= 827
 
 testParsing3 :: Assertion
 testParsing3 = assertBool "" $ isLeft $ runProgram "x := x1 + 2" []
@@ -87,10 +87,10 @@ testParsing6 :: Assertion
 testParsing6 = assertBool "" $ isLeft $ runProgram "x0 := x1 + x2" []
 
 
-runProgram :: String -> [Integer] -> Either String (IO Integer)
+runProgram :: String -> [Integer] -> Either String Integer
 runProgram = evalProgram parser evaluator
 
-runProgram' :: String -> [Integer] -> IO Integer
+runProgram' :: String -> [Integer] -> Integer
 runProgram' = evalProgram' parser evaluator
 
 isLeft :: Either a b -> Bool
