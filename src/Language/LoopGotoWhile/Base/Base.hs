@@ -3,42 +3,40 @@ module Language.LoopGotoWhile.Base.Base
     , Index
     , Variable (..)
     , Operator (..)
-    , Statement (..)
-    , Env
-    , runStatements
-    , runProgram
+    , Assignment (..)
+    , parser
+    , evaluator
     , parseConst
     , parseVar
     , parseOp
-    , parseStatement
-    , parseProgram
-    , eval
+    , parseAssignment
+    , parseAssignments
+    , evalAssignment
+    , evalAssignments
     , nullEnv
     , getVar
     , setVar
     ) where
 
-import System
 import System.IO.Unsafe (unsafeInterleaveIO)
 import Control.Monad
 import Data.IORef
-import Data.List (intercalate)
 import Data.Maybe (fromJust)
 import Text.ParserCombinators.Parsec
 
 
-runStatements :: Statement -> [Integer] -> IO Integer
-runStatements stmnts args = do
+parser :: String -> Either String [Assignment]
+parser code = case parse parseAssignments "" code of
+    Left err  -> Left $ show err
+    Right val -> Right val
+
+evaluator :: [Assignment] -> [Integer] -> IO Integer
+evaluator ast args = do
     envRef <- nullEnv
     forM_ [1..length args] (\i ->
         setVar envRef (toInteger i) (args !! (i-1)))
-    eval envRef stmnts
+    evalAssignments envRef ast
     getVar envRef 0
-
-runProgram :: String -> [Integer] -> IO (Either String Integer)
-runProgram code args = case parse parseProgram "base" code of
-    Left err  -> return $ Left $ show err
-    Right val -> liftM Right $ runStatements val args
 
 
 type Constant = Integer
@@ -49,8 +47,7 @@ data Variable = Variable Index
 
 data Operator = Plus | Minus
 
-data Statement = Assignment Variable Variable Operator Constant
-               | Sequence [Statement]
+data Assignment = Assignment Variable Variable Operator Constant
 
 parseConst :: Parser Constant
 parseConst = liftM read (many1 digit <?> "constant")
@@ -66,8 +63,8 @@ parseOp = do
       '-' -> return Minus
       _   -> fail "Wrong operator"
 
-parseStatement :: Parser Statement
-parseStatement = do
+parseAssignment :: Parser Assignment
+parseAssignment = do
     spaces
     x <- parseVar
     spaces
@@ -81,33 +78,33 @@ parseStatement = do
     spaces
     return $ Assignment x y o c
 
-parseProgram :: Parser Statement
-parseProgram = liftM Sequence $ parseStatement `sepBy` string ";"
+parseAssignments :: Parser [Assignment]
+parseAssignments = parseAssignment `sepBy` string ";"
 
 
-showStatement :: Statement -> String
-showStatement (Assignment (Variable i) (Variable j) (Plus) (c)) =
-    showStatement' i j "+" c
-showStatement (Assignment (Variable i) (Variable j) (Minus) (c)) =
-    showStatement' i j "-" c
-showStatement (Sequence stmnts) = 
-    intercalate "; " $ map showStatement stmnts
+showAssignment :: Assignment -> String
+showAssignment (Assignment (Variable i) (Variable j) (Plus) (c)) =
+    showAssignment' i j "+" c
+showAssignment (Assignment (Variable i) (Variable j) (Minus) (c)) =
+    showAssignment' i j "-" c
 
-showStatement' :: Index -> Index -> String -> Integer -> String
-showStatement' i j op c = 
+showAssignment' :: Index -> Index -> String -> Integer -> String
+showAssignment' i j op c = 
     "x" ++ show i ++ " := " ++ "x" ++ show j ++ " " ++ op ++ " " ++ show c
 
-instance Show Statement where show = showStatement
+instance Show Assignment where show = showAssignment
 
 
-eval :: Env -> Statement -> IO ()
-eval env (Assignment (Variable i) (Variable j) (Plus) (c)) = do
+evalAssignment :: Env -> Assignment -> IO ()
+evalAssignment env (Assignment (Variable i) (Variable j) (Plus) (c)) = do
     xj <- getVar env j
     setVar env i (xj + c)
-eval env (Assignment (Variable i) (Variable j) (Minus) (c)) = do
+evalAssignment env (Assignment (Variable i) (Variable j) (Minus) (c)) = do
     xj <- getVar env j
     setVar env i (max (xj - c) 0)
-eval env (Sequence stmnts) = mapM_ (eval env) stmnts 
+
+evalAssignments :: Env -> [Assignment] -> IO ()
+evalAssignments env assignments = mapM_ (evalAssignment env) assignments
 
 
 type Env = IORef [(Index, IORef Integer)]
