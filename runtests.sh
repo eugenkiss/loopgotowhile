@@ -1,4 +1,4 @@
 #!/bin/bash
 cabal configure -ftest
 cabal build
-./dist/build/test/test
+./dist/build/test/test $@

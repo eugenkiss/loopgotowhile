@@ -33,6 +33,7 @@ Executable test
     build-depends:   
         base >= 4.0,
         haskell98,
+        mtl,
         test-framework,
         test-framework-hunit, 
         HUnit,

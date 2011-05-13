@@ -1,0 +1,77 @@
+- create while language with code duplication and copy all tests
+- how to remove boilerplate duplication?
+    - how to better use Core and CoreE for defining common functions/data
+        - expression problem? open datatypes?
+- Transformations
+    - x_extended -> x_strict
+    - LOOP -> WHILE
+    - WHILE <-> GOTO
+    - LOOP -> WHILE -> GOTO
+- Use strict while as evaluation language and just translate every program
+  to strict while and evaluate with strict while
+
+- Function definition for extended with lexical scope + nested functions
+    - rather macros than real functions that are like nested programs
+      where parameters are x1,... and output is x0
+    - spricht etwas gegen verschachtelte funktionsdefinitionen?
+    - need not only keep vars as state but also function definitions
+      and function definitions can be arbitrarily nested so keep tree of
+      function definitions around
+- Think about import ("include" fits better) statement
+    - implicitly include "prelude"
+    - if functions are supported use function definitions instead of manually
+      translating * + etc. e.g. just rewrite x1 * x2 to mul(x1,x2) and mul
+      is implicitly included from the prelude
+- Pretty printer for each parser 
+
+- Create cltools
+- Update to Parsec 3
+- Remove the warnings (by improving the code)
+- Go through Todos
+- run HLint
+- Create try in your browser website
+- create readme (language definition, examples etc.)
+    - provide grammar
+    - http://en.wikipedia.org/wiki/BlooP_and_FlooP
+
+- Future -> to Readme
+    - Optimizations
+        - remove redundancy (e.g. remove "x0 := x0 + 0")
+    - LLVM Output? -> http://hackage.haskell.org/cgi-bin/hackage-scripts/package/llvm
+    - Create Javascript version (to directly run in browser)?
+        - Translation tool from hs -> js?
+
+- How to improve code?
+    - ask questions from todos
+    - Provided Parsec examples
+    - Other examples from internet
+    - Other parser libs?
+        - http://projects.haskell.org/grammar-combinators/
+        - Alex, Happy
+    - What advanced type features / language extensions would improve the code?
+      Mainly remove code duplication by using abstractions?
+        - View Patterns?
+        - Type Families?
+- http://sigusr2.net/2011/Apr/18/parser-combinators-made-simple.html
+- http://book.realworldhaskell.org/read/using-parsec.html
+- http://bloggingmath.wordpress.com/2010/01/20/writing-a-compiler-in-haskell-compiler-series-part-i/
+- http://hackage.haskell.org/cgi-bin/hackage-scripts/package/language-python
+- http://hackage.haskell.org/packages/archive/pkg-list.html#cat:language
+- http://www.cs.uu.nl/wiki/UHC/WebHome
+
+- create documentation
+    - code design/rationale
+        - Data Types in own file because of mutual recurions import
+        - Tests of whiel and goto are smaller because if transforms to loop
+          correct, no need to test
+        - abstract has common features
+        - each language has strict and extended version
+        - ...
+    - syntax
+        - grammer
+    - semantics
+    - examples
+    - exercises
+    - try in your browser
+
+- Think about trying in browser and how to prevent overloading of server

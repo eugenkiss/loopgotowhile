@@ -1,4 +1,4 @@
-module Language.LoopGotoWhile.Base.Base
+module Language.LoopGotoWhile.Abstract.Strict
     ( Constant
     , Index
     , Variable (..)
@@ -25,11 +25,11 @@ import Data.STRef
 import Data.Maybe (fromJust)
 import Text.ParserCombinators.Parsec
 
-import Language.LoopGotoWhile.Util (makeStdParser)
+import Language.LoopGotoWhile.Util (mkStdParser)
 
 
 parser :: String -> Either String [Assignment]
-parser = makeStdParser parseAssignments
+parser = mkStdParser parseAssignments spaces
 
 evaluator :: [Assignment] -> [Integer] -> Integer
 evaluator ast args = runST $ do
@@ -80,7 +80,7 @@ parseAssignment = do
     return $ Assignment x y o c
 
 parseAssignments :: Parser [Assignment]
-parseAssignments = parseAssignment `sepBy` string ";"
+parseAssignments = parseAssignment `sepBy1` string ";"
 
 
 showAssignment :: Assignment -> String

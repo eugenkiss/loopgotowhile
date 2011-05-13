@@ -21,3 +21,243 @@ LOOP x1 DO
   IF x6 = x1 THEN x0 := 1 END
 END
 
+-----------------------------------------------
+Function definition
+-------------------
+
+Does anything speak against nested function definitions?
+
+    FUN sqrt DO
+      LOOP x1 DO
+        c := c + 1;
+        t := c * c;
+        IF t = x1 THEN x0 := c END
+      END
+    END
+
+All the variables in a function definition are local. No way to access global.
+So the x1 in sqrt is another x1 than the one outside. Function definition is
+a statement so can come anywhere where a statement can come in the code. Before
+code is evaluated function definitions are stripped from the tree and saved
+in a separate table. If two functions with the same name are declared, the
+one declared later is used. This way I can include and implicit prelude but
+the user can overwrite e.g. sqrt with his own definition if he wants to.
+
+The following is an example useage
+
+    x2 := sqrt(4) + 1
+
+becomes (after "macro-expansion") -->
+
+    x5 := 4;
+    LOOP x5 DO
+      c := c + 1;
+      t := c * c;
+      IF t = x5 THEN x2 := c END
+    END
+
+where x5, c and t are unused variables.
+
+-----------------------------------------------
+Import statement
+-----------------------------------------------
+
+IMPORT "std.loop" END
+
+----------------------------------------------------
+How to reuse code / data types? (Open data types?)
+--------------------------------------------------
+
+- Explain that it is a little like Blop Flop
+- Show languages and show how they are to be interpreted and transformed into Haskell structures.
+- Explain that the code examples are rather pseudocode where a lot of definitions are omitted to only show the core idea / problem
+
+### Solution 1
+
+Make a big language that incorporates handling of LOOPs, WHILEs etc. and
+for each particular language only parse the allowed constructs. E.g.
+
+    data BigStat
+        = Assign VarIdent AExp
+        | If BExp BigStat
+        | IfElse BExp BigStat BigStat
+        | Loop VarIdent BigStat
+        | While BExp BigStat
+        | Seq [BigStat]
+
+Loop does not parse WHILEs:
+
+    import BigLanguage (parseIfElseStat, parseIfStat, parseLoopStat, parseAssignStat)
+
+    type LoopStat = BigStat
+
+    parseStat :: Parser LoopStat
+    parseStat = choice 
+              [ try parseIfElseStat
+              , parseIfStat
+              , parseLoopStat
+              , try parseAssignStat
+              ]
+
+While does not parse LOOPs:
+
+    import BigLanguage (parseIfElseStat, parseIfStat, parseWhileStat, parseAssignStat)
+
+    type WhileStat = BigStat
+
+    parseStat :: Parser WhileStat
+    parseStat = choice 
+              [ try parseIfElseStat
+              , parseIfStat
+              , parseWhileStat
+              , try parseAssignStat
+              ]
+
+While this approach works I don't like it principally. I create a big
+monolithic language and reduce it to fit the sublanguages I need whereas
+I'd like to create a small core of shared language constructs and extend them
+to fit the suplanguage. I find the latter approach more natural.
+
+However, I don't see an easy solution in Haskell mostly since data types are
+closed as opposed to classes in OO languages. If I used an OO language I would
+have an idea how to design the code the second way simply because I could
+extend the definitions of the core language. So here comes a failed approach
+in Haskell:
+
+
+### Failution 2
+
+"Core" data type and constructors. These language constructs are shared by
+the particular languages (not every data definition is shown).
+
+    data Stat
+        = Assign VarIdent AExp
+        | If BExp Stat
+        | IfElse BExp Stat Stat
+        | Seq [Stat]
+
+    parseIfStat :: Parser Stat
+    parseIfStat = do 
+        reserved "IF"
+        cond <- parseRelExp
+        reserved "THEN"
+        thenpart <- parseStat
+        reserved "END"
+        return $ If cond thenpart
+
+
+Now, Loop and While data types are (ill-)defined like this:
+
+    data LoopStat
+        = Loop VarIdent LoopStat
+        | CoreStat Stat
+
+    data WhileStat
+        = While BExp WhileStat
+        | CoreStat Stat
+
+Obviously, this won't work, e.g.
+
+    LOOP x1 DO
+      x3 := 0;
+      LOOP x3 DO
+        x4 := 1
+      END
+    END
+
+becomes
+
+    LoopStat (VarIdent x1) (CoreStat (Seq [Assign x3 (Const 0),
+                                        {- Here's the Problem: Loops cannot become a Stat -}
+                                           LoopStat x3 (Assign x4 (Const 1))])) -- This is impossible with the above definition of LoopStat!
+
+Similarly, these definitions are ill-defined as well as LOOPs / WHILEs cannot
+be nested:
+
+    data LoopStat
+        = Loop VarIdent CoreStat
+        | CoreStat CoreStat
+
+    data WhileStat
+        = While BExp CoreStat
+        | CoreStat CoreStat
+
+But I think the general idea how I want to structure the code becomes clear -
+even with these examples full of failure. So I thought to parameterize everything
+which leads to:
+
+
+### Solution 3
+TODO Type classes, parametrization...
+
+    class Translatable a where
+        translate :: Stat -> a
+        translateForLoop :: Stat -> State [VarIdent] a
+
+oder
+
+    class Translatable a where
+        fromCore :: Core -> a
+        toCore :: a -> Core
+
+    data Stat
+        = Assign VarIdent AExp
+        | If BExp Stat
+        | IfElse BExp Stat Stat
+        | Seq [Stat]
+
+    instance Translatable Stat where
+        translate = id
+
+    parseIfStat :: Translatable a => Parser a
+    parseIfStat = do 
+        reserved "IF"
+        cond <- parseRelExp
+        reserved "THEN"
+        thenpart <- parseStat
+        reserved "END"
+        return $ translate $ If cond thenpart
+
+    {-...-}
+
+--
+    import qualified CoreLanguage as C
+
+    data LoopStat
+        = Assign VarIdent AExp
+        | If BExp LoopStat
+        | IfElse BExp LoopStat LoopStat
+        | Loop VarIdent LoopStat
+        | Seq [LoopStat]
+
+    instance Translatable LoopStat where
+        translate (C.Assign ident aexp) = Assign ident aexp
+        translate (C.If bexp stat) = If bexp (translate stat)
+        translate (C.IfElse bexp stat1 stat2) = IfElse bexp (translate stat1) (translate stat2)
+        translate (C.Seq stats) = Seq $ map translate stats
+
+    parseLoopStat :: Parser LoopStat
+    parseLoopStat = do
+        reserved "LOOP"
+        ident <- parseVar
+        reserved "DO"
+        body <- parseStat
+        reserved "END"
+        return $ Loop ident body
+
+    parseStat :: Parser LoopStat
+    parseStat = choice 
+              [ try parseIfElseStat
+              , parseIfStat
+              , parseLoopStat
+              , try parseAssignStat
+              ]
+
+--
+
+    the same for while
+
+### Conclusion
+
+Can you help me? Maybe some advanced things like type families can help me 
+(although I don't really looked into them yet)? I hope my problem became clear.

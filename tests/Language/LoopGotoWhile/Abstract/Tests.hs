@@ -1,33 +1,27 @@
-module Language.LoopGotoWhile.Base.Tests (tests) where
+module Language.LoopGotoWhile.Abstract.Tests (tests) where
 
 import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test)
 
 import Language.LoopGotoWhile.Util
-import Language.LoopGotoWhile.Base.Base (parser, evaluator)
+import Language.LoopGotoWhile.Abstract.Strict (parser, evaluator)
 
 tests :: [Test]
-tests = [ testCase "base/defaultvalue" testDefaultvalue
-        , testCase "base/assignment1" testAssignment1
-        , testCase "base/assignment2" testAssignment2
-        , testCase "base/assignment3" testAssignment3
-        , testCase "base/assignment4" testAssignment4
-        , testCase "base/arithmetic1" testArithmetic1
-        , testCase "base/arithmetic2" testArithmetic2
-        , testCase "base/arguments1" testArguments1
-        , testCase "base/parsing1" testParsing1
-        , testCase "base/parsing2" testParsing2
-        , testCase "base/parsing3" testParsing3
-        , testCase "base/parsing4" testParsing4
-        , testCase "base/parsing5" testParsing5
-        , testCase "base/parsing6" testParsing6
+tests = [ testCase "abstract/assignment1" testAssignment1
+        , testCase "abstract/assignment2" testAssignment2
+        , testCase "abstract/assignment3" testAssignment3
+        , testCase "abstract/assignment4" testAssignment4
+        , testCase "abstract/arithmetic1" testArithmetic1
+        , testCase "abstract/arithmetic2" testArithmetic2
+        , testCase "abstract/arguments1" testArguments1
+        , testCase "abstract/parsing1" testParsing1
+        , testCase "abstract/parsing2" testParsing2
+        , testCase "abstract/parsing3" testParsing3
+        , testCase "abstract/parsing4" testParsing4
+        , testCase "abstract/parsing5" testParsing5
+        , testCase "abstract/parsing6" testParsing6
         ]
-
-testDefaultvalue :: Assertion
-testDefaultvalue 
-    = runProgram' "" [] 
-  @?= 0
 
 testAssignment1 :: Assertion
 testAssignment1 
