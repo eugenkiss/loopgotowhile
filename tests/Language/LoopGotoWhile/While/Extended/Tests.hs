@@ -2,40 +2,40 @@
 -- - Test using functions
 -- - Test 1 complicated program 
 --     - nested loops, nested ifs, compund arith expr, function use, comments
-module Language.LoopGotoWhile.Loop.Extended.Tests (tests) where
+module Language.LoopGotoWhile.While.Extended.Tests (tests) where
 
 import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test)
 
 import Language.LoopGotoWhile.Util
-import Language.LoopGotoWhile.Loop.Extended (parse, eval)
+import Language.LoopGotoWhile.While.Extended (parse, eval)
 
 tests :: [Test]
-tests = [ testCase "loop/extended/parsing1" testParsing1
-        , testCase "loop/extended/comments1" testComments1
-        , testCase "loop/extended/comments2" testComments2
-        , testCase "loop/extended/comments3" testComments3
-        , testCase "loop/extended/assignment1" testAssignment1
-        , testCase "loop/extended/assignment2" testAssignment2
-        , testCase "loop/extended/assignment3" testAssignment3
-        , testCase "loop/extended/arithmetic1" testArithmetic1
-        , testCase "loop/extended/arithmetic2" testArithmetic2
-        , testCase "loop/extended/arithmetic3" testArithmetic3
-        , testCase "loop/extended/arithmetic4" testArithmetic4
-        , testCase "loop/extended/arithmetic5" testArithmetic5
-        , testCase "loop/extended/arithmetic6" testArithmetic6
-        , testCase "loop/extended/arithmetic7" testArithmetic7
-        , testCase "loop/extended/arithmetic8" testArithmetic8
-        , testCase "loop/extended/arithmetic9" testArithmetic9
-        , testCase "loop/extended/arithmetic10" testArithmetic10
-        , testCase "loop/extended/arithmetic11" testArithmetic11
-        , testCase "loop/extended/arithmetic12" testArithmetic12
-        , testCase "loop/extended/control1" testControl1
-        , testCase "loop/extended/control2" testControl2
-        , testCase "loop/extended/control3" testControl3
-        , testCase "loop/extended/control4" testControl4
-        , testCase "loop/extended/control5" testControl5
+tests = [ testCase "while/extended/parsing1" testParsing1
+        , testCase "while/extended/comments1" testComments1
+        , testCase "while/extended/comments2" testComments2
+        , testCase "while/extended/comments3" testComments3
+        , testCase "while/extended/assignment1" testAssignment1
+        , testCase "while/extended/assignment2" testAssignment2
+        , testCase "while/extended/assignment3" testAssignment3
+        , testCase "while/extended/arithmetic1" testArithmetic1
+        , testCase "while/extended/arithmetic2" testArithmetic2
+        , testCase "while/extended/arithmetic3" testArithmetic3
+        , testCase "while/extended/arithmetic4" testArithmetic4
+        , testCase "while/extended/arithmetic5" testArithmetic5
+        , testCase "while/extended/arithmetic6" testArithmetic6
+        , testCase "while/extended/arithmetic7" testArithmetic7
+        , testCase "while/extended/arithmetic8" testArithmetic8
+        , testCase "while/extended/arithmetic9" testArithmetic9
+        , testCase "while/extended/arithmetic10" testArithmetic10
+        , testCase "while/extended/arithmetic11" testArithmetic11
+        , testCase "while/extended/arithmetic12" testArithmetic12
+        , testCase "while/extended/control1" testControl1
+        , testCase "while/extended/control2" testControl2
+        , testCase "while/extended/control3" testControl3
+        , testCase "while/extended/control4" testControl4
+        , testCase "while/extended/control5" testControl5
         ]
 
 testParsing1 :: Assertion
@@ -133,19 +133,23 @@ testArithmetic12
   @?= 13
 
 testControl1 :: Assertion
-testControl1 
-    = runProgram' [10, 1] p @?= 13
- where p = "LOOP 16 / 2^2 + (x1 * (x2 % 2)) - 1 DO" ++
-           "  x0 := x0 + 1;"                        ++ 
-           "  x0 := x0 - 1;"                        ++ 
-           "  x0 := x0 + 1"                         ++
+testControl1 = runProgram' [10, 1] p @?= 13
+ where p = "c := 16 / 2^2 + (x1 * (x2 % 2)) - 1;"         ++
+           "WHILE c != 0 DO"                              ++
+           "  c  := c  - 1;"                              ++
+           "  x0 := x0 + 1;"                              ++ 
+           "  x0 := x0 - 1;"                              ++ 
+           "  x0 := x0 + 1"                               ++
            "END"
 
 testControl2 :: Assertion
-testControl2 
-    = runProgram' [10, 1] p @?= 26
- where p = "LOOP 16 / 2^2 + (x1 * (x2 % 2)) - 1 DO" ++
-           "  LOOP 2 DO"                            ++
+testControl2 = runProgram' [10, 1] p @?= 26
+ where p = "c0 := 16 / 2^2 + (x1 * (x2 % 2)) - 1;"  ++
+           "WHILE c0 != 0 DO"                       ++
+           "  c0 := c0 - 1;"                        ++
+           "  c1 := 2;"                             ++
+           "  WHILE c1 != 0 DO"                     ++
+           "    c1 := c1 - 1;"                      ++
            "    x0 := x0 + 1;"                      ++ 
            "    x0 := x0 - 1;"                      ++ 
            "    x0 := x0 + 1"                       ++
@@ -163,7 +167,9 @@ testControl4 = runProgram' [] p @?= 1
 testControl5 :: Assertion
 testControl5 = runProgram' [10, 1] p @?= 42 
  where p = "IF !(16 / 2^2 + (x1 * (x2 % 2)) - 1 < 8 && x1 >= x2 || 2 = 2) THEN" ++
-           "  LOOP 2 DO"                                                        ++
+           "  c := 2;"                                                          ++
+           "  WHILE c != 0 DO"                                                  ++
+           "    c  := c  - 1;"                                                  ++
            "    x0 := x0 + 1;"                                                  ++ 
            "    x0 := x0 - 1;"                                                  ++ 
            "    x0 := x0 + 1"                                                   ++

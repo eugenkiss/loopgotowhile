@@ -16,9 +16,12 @@ import Test.HUnit hiding (Test)
 
 import           Language.LoopGotoWhile.Util
 import qualified Language.LoopGotoWhile.Loop.Strict as Strict
-import           Language.LoopGotoWhile.Loop.ExtendedADT (Stat)
-import           Language.LoopGotoWhile.Loop.Extended (parser)
-import           Language.LoopGotoWhile.Loop.Transform (toStrict)
+import qualified Language.LoopGotoWhile.Loop.StrictAS as StrictAS
+import           Language.LoopGotoWhile.Loop.ExtendedAS (Stat)
+import           Language.LoopGotoWhile.Loop.Extended (parse)
+import           Language.LoopGotoWhile.Loop.Transform (toStrict, toWhile)
+import qualified Language.LoopGotoWhile.While.Extended as WhileE
+import qualified Language.LoopGotoWhile.While.ExtendedAS as WhileEAS
 
 tests :: [Test]
 tests = [ testCase "loop/transform/extended-to-strict/renaming1" testStrictRenaming1
@@ -51,6 +54,9 @@ tests = [ testCase "loop/transform/extended-to-strict/renaming1" testStrictRenam
         , testCase "loop/transform/extended-to-strict/control15" testStrictControl15
         , testCase "loop/transform/extended-to-strict/control16" testStrictControl16
         , testCase "loop/transform/extended-to-strict/control17" testStrictControl17
+
+        , testCase "loop/transform/while/control1" testWhileControl1
+        , testCase "loop/transform/while/control2" testWhileControl2
         ]
 
 testStrictRenaming1 = toStrict (parseE e) @?= parseS s
@@ -376,16 +382,44 @@ testStrictControl17 = toStrict (parseE e1) @?= toStrict (parseE e2)
 
 -- TODO: test functions
 
+
+testWhileControl1 = toWhile (parseE e1) @?= parseWhileE e2
+  where e1 = "LOOP x1 DO"     ++
+             "  x0 := x0 + 0" ++
+             "END"
+        e2 = "x2 := x1;"        ++
+             "WHILE x2 != 0 DO" ++
+             "  x2 := x2 - 1;"  ++
+             "  x0 := x0 + 0"   ++
+             "END"
+
+testWhileControl2 = toWhile (parseE e1) @?= parseWhileE e2
+  where e1 = "LOOP x1 + 1 DO" ++
+             "  x0 := x0 + 0" ++
+             "END"
+        e2 = "x2 := x1 + 1;"        ++
+             "WHILE x2 != 0 DO" ++
+             "  x2 := x2 - 1;"  ++
+             "  x0 := x0 + 0"   ++
+             "END"
+
+
 -- Helper
 
 -- | Parse a string representation of an extended Loop program and return the AST.
 parseE :: String -> Stat
-parseE code = case parser code of
+parseE code = case parse code of
     Left  err -> error err
     Right ast -> ast
 
 -- | Parse a string representation of a strict Loop program and return the AST.
-parseS :: String -> Strict.Statement
-parseS code = case Strict.parser code of
+parseS :: String -> StrictAS.Stat
+parseS code = case Strict.parse code of
+    Left  err -> error err
+    Right ast -> ast
+
+-- | Parse a string representation of an extended While program and return the AST.
+parseWhileE :: String -> WhileEAS.Stat
+parseWhileE code = case WhileE.parse code of
     Left  err -> error err
     Right ast -> ast

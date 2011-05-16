@@ -13,7 +13,7 @@ Cabal-version:       >=1.2
 Description:         TODO
 
 Extra-source-files: 
-    README.md
+    README.mkd
 
 source-repository head
     type:     git
@@ -41,8 +41,8 @@ Executable test
     
 
 
---Executable loop
+--TODO: Executable loop
   
---Executable goto
+--TODO: Executable goto
 
---Executable while
+--TODO: Executable while

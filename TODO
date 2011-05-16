@@ -1,47 +1,34 @@
-- create while language with code duplication and copy all tests
-- how to remove boilerplate duplication?
-    - how to better use Core and CoreE for defining common functions/data
-        - expression problem? open datatypes?
-- Transformations
-    - x_extended -> x_strict
-    - LOOP -> WHILE
-    - WHILE <-> GOTO
-    - LOOP -> WHILE -> GOTO
-- Use strict while as evaluation language and just translate every program
-  to strict while and evaluate with strict while
+- create goto language with code duplication and copy all tests
+    - create transformation gotoe -> gotos
+    - create transformation gotos -> gotoe
+    - create transformations goto <-> while
+    (- create transformation loop -> while -> goto)
+    - Use strict while as evaluation language 
+    - Pretty printer 
 
-- Function definition for extended with lexical scope + nested functions
-    - rather macros than real functions that are like nested programs
-      where parameters are x1,... and output is x0
-    - spricht etwas gegen verschachtelte funktionsdefinitionen?
-    - need not only keep vars as state but also function definitions
-      and function definitions can be arbitrarily nested so keep tree of
-      function definitions around
-- Think about import ("include" fits better) statement
-    - implicitly include "prelude"
-    - if functions are supported use function definitions instead of manually
-      translating * + etc. e.g. just rewrite x1 * x2 to mul(x1,x2) and mul
-      is implicitly included from the prelude
-- Pretty printer for each parser 
+- Improve evaluator so that instead of creating a lazy infinite list of STRefs
+  just initialize STRef with 0 when it is first used, so that it doesn't take
+  so much time to create the list from 0 till n, where n is a big number
+  (e.g. x999999999999999 takes too long)
 
 - Create cltools
-- Update to Parsec 3
 - Remove the warnings (by improving the code)
 - Go through Todos
 - run HLint
 - Create try in your browser website
-- create readme (language definition, examples etc.)
-    - provide grammar
-    - http://en.wikipedia.org/wiki/BlooP_and_FlooP
-
-- Future -> to Readme
-    - Optimizations
-        - remove redundancy (e.g. remove "x0 := x0 + 0")
-    - LLVM Output? -> http://hackage.haskell.org/cgi-bin/hackage-scripts/package/llvm
-    - Create Javascript version (to directly run in browser)?
-        - Translation tool from hs -> js?
+- create readme / improve cabal file
+    - Future -> to Readme
+        - Optimizations
+            - remove redundancy (e.g. remove "x0 := x0 + 0")
+            - other optimizations?
+        - Function Definitions
+- put on github
+- ask Vollmer (ok with it, credit, using exercises...)
 
 - How to improve code?
+    - how to remove code duplication?
+        - how to better extract common functionality?
+            - expression problem? open datatypes?
     - ask questions from todos
     - Provided Parsec examples
     - Other examples from internet
@@ -59,7 +46,25 @@
 - http://hackage.haskell.org/packages/archive/pkg-list.html#cat:language
 - http://www.cs.uu.nl/wiki/UHC/WebHome
 
+- Function definition for extended with lexical scope + nested functions
+    - rather macros than real functions that are like nested programs
+      where parameters are x1,... and output is x0
+    - spricht etwas gegen verschachtelte funktionsdefinitionen?
+    - need not only keep vars as state but also function definitions
+      and function definitions can be arbitrarily nested so keep tree of
+      function definitions around
+- Think about import ("include" fits better) statement
+    - implicitly include "prelude"
+    - if functions are supported use function definitions instead of manually
+      translating * + etc. e.g. just rewrite x1 * x2 to mul(x1,x2) and mul
+      is implicitly included from the prelude
+- reuse strict tests for extended versions
+
+- improve code documentation
+- hackage?
+
 - create documentation
+    - introduction (http://en.wikipedia.org/wiki/BlooP_and_FlooP, GTI)
     - code design/rationale
         - Data Types in own file because of mutual recurions import
         - Tests of whiel and goto are smaller because if transforms to loop
@@ -75,3 +80,10 @@
     - try in your browser
 
 - Think about trying in browser and how to prevent overloading of server
+    - https://github.com/chrisdone/haskell-json
+    - https://github.com/chrisdone/tryhaskell
+    - http://chrisdone.com/posts/2010-04-05-haskell-json-service-tryhaskell.html
+    - http://codemirror.net/ highlighted javascript
+
+- look at how others write code
+    - http://donsbot.wordpress.com/software/

@@ -17,14 +17,26 @@ main :: IO ()
                          {-[>putStrLn $ evalProgram' parser evaluator program []<]-}
   {-where program = "v := y + z; j := v + y; LOOP j DO x33 := x0 + 0 END"-}
 main = do 
-    print $ toStrict (parseE e)
+    print $ (parseE e)
     {-print $ parseS s-}
-  where e = "x0 := x1 / x2"
+  where e = "x0 := x1 / x2; \n" ++
+            "IF uh != i && !(8 < 8) THEN \n" ++
+            "  IF 7 = 9 THEN \n" ++
+            "    x3 := 8; \n" ++
+            "    LOOP x3 DO \n" ++
+            "      x3 := 9 \n" ++
+            "    END \n" ++
+            "  ELSE \n" ++
+            "    x0 := 89 \n" ++
+            "  END; \n" ++
+            "  x9 := x9 \n" ++
+            "END; \n" ++
+            "x0 := x0 + 3 - 3"
 
-parseE code = case parser code of
+parseE code = case parse code of
     Left  err -> error $ show err
     Right ast -> ast
 
-parseS code = case Strict.parser code of
+parseS code = case Strict.parse code of
     Left  err -> error $ show err
     Right ast -> ast

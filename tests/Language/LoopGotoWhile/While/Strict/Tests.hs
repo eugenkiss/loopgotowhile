@@ -1,32 +1,32 @@
-module Language.LoopGotoWhile.Loop.Strict.Tests (tests) where
+module Language.LoopGotoWhile.While.Strict.Tests (tests) where
 
 import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test)
 
 import Language.LoopGotoWhile.Util
-import Language.LoopGotoWhile.Loop.Strict (parse, eval)
+import Language.LoopGotoWhile.While.Strict (eval, parse)
 
 tests :: [Test]
-tests = [ testCase "loop/strict/assignment1" testAssignment1
-        , testCase "loop/strict/assignment2" testAssignment2
-        , testCase "loop/strict/assignment3" testAssignment3
-        , testCase "loop/strict/assignment4" testAssignment4
-        , testCase "loop/strict/arithmetic1" testArithmetic1
-        , testCase "loop/strict/arithmetic2" testArithmetic2
-        , testCase "loop/strict/arguments1" testArguments1
-        , testCase "loop/strict/looping1" testLooping1
-        , testCase "loop/strict/looping2" testLooping2
-        , testCase "loop/strict/parsing1" testParsing1
-        , testCase "loop/strict/parsing2" testParsing2
-        , testCase "loop/strict/parsing3" testParsing3
-        , testCase "loop/strict/parsing4" testParsing4
-        , testCase "loop/strict/parsing5" testParsing5
-        , testCase "loop/strict/parsing6" testParsing6
-        , testCase "loop/strict/parsing7" testParsing7
-        , testCase "loop/strict/parsing8" testParsing8
-        , testCase "loop/strict/parsing9" testParsing9
-        , testCase "loop/strict/parsing10" testParsing10
+tests = [ testCase "while/strict/assignment1" testAssignment1
+        , testCase "while/strict/assignment2" testAssignment2
+        , testCase "while/strict/assignment3" testAssignment3
+        , testCase "while/strict/assignment4" testAssignment4
+        , testCase "while/strict/arithmetic1" testArithmetic1
+        , testCase "while/strict/arithmetic2" testArithmetic2
+        , testCase "while/strict/arguments1" testArguments1
+        , testCase "while/strict/looping1" testLooping1
+        , testCase "while/strict/looping2" testLooping2
+        , testCase "while/strict/parsing1" testParsing1
+        , testCase "while/strict/parsing2" testParsing2
+        , testCase "while/strict/parsing3" testParsing3
+        , testCase "while/strict/parsing4" testParsing4
+        , testCase "while/strict/parsing5" testParsing5
+        , testCase "while/strict/parsing6" testParsing6
+        , testCase "while/strict/parsing7" testParsing7
+        , testCase "while/strict/parsing8" testParsing8
+        , testCase "while/strict/parsing9" testParsing9
+        , testCase "while/strict/parsing10" testParsing10
         ]
 
 -- TODO: Test a complex program read from file
@@ -68,12 +68,12 @@ testArguments1
 
 testLooping1 :: Assertion
 testLooping1 
-    = runProgram' [10] "LOOP x1 DO x0 := x0 + 1; x1 := x2 + 1 END" 
+    = runProgram' [10] "x3 := x1 + 0; WHILE x3 != 0 DO x3 := x3 - 1; x0 := x0 + 1; x1 := x2 + 1 END" 
   @?= 10
 
 testLooping2 :: Assertion
 testLooping2 
-    = runProgram' [8,7] "LOOP x1 DO LOOP x2 DO x0 := x0 + 1 END END" 
+    = runProgram' [8,7] "WHILE x1 != 0 DO x1 := x1 - 1; x3 := x2 + 0; WHILE x3 != 0 DO x3 := x3 - 1; x0 := x0 + 1 END END" 
   @?= 8 * 7
 
 testParsing1 :: Assertion
@@ -83,7 +83,7 @@ testParsing1
 
 testParsing2 :: Assertion
 testParsing2 
-    = runProgram' [] "x0:=  x121 \n\n +827\n ;\n x1 :=x2 \n + 0;  \n LOOP \n\n x8 DO x8 := x8 +\n0END" 
+    = runProgram' [] "x0:=  x121 \n\n +827\n ;\n x1 :=x2 \n + 0;  \n x5 := x5 + 5; WHILE \n\n x5 != 0 DO x5 := x5 - 1; x8 := x8 +\n0END" 
   @?= 827
 
 testParsing3 :: Assertion
@@ -104,11 +104,11 @@ testParsing6 = assertBool "" $ isLeft $ runProgram [] $
 
 testParsing7 :: Assertion
 testParsing7 = assertBool "" $ isLeft $ runProgram [] $
-    "LOOP x0 x1 := x1 + 1 END"
+    "WHILE x0 x1 := x1 + 1 END"
 
 testParsing8 :: Assertion
 testParsing8 = assertBool "" $ isLeft $ runProgram [] $
-    "loop x0 do x1 := x1 + 1 end"
+    "while x0 do x1 := x1 + 1 end"
 
 testParsing9 :: Assertion
 testParsing9 = assertBool "" $ isLeft $ runProgram [] $ 

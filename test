@@ -21,11 +21,50 @@ LOOP x1 DO
   IF x6 = x1 THEN x0 := 1 END
 END
 
------------------------------------------------
+-----------------------------------------------------
+WHILE a o b DO
+  P
+END
+
+=>
+
+IF a o b THEN
+  c := 1
+ELSE
+  c := 0
+END;
+WHILE c != 0 DO
+  P;
+  IF a o b THEN
+    c := 1
+  ELSE
+    c := 0
+  END
+END
+
+Where c is a previously unused variable that represents a "boolean value".
+
+-------------------
 Function definition
 -------------------
 
-Does anything speak against nested function definitions?
+Does anything speak against nested function definitions? -> No, but outer 
+function is not inside the scope of the inner function. Thus, one cannot really
+implement recursive functions. However, what I call n-recursive functions is
+possible :):
+
+    FUN fac DO
+      FUN fac DO
+        FUN fac DO
+          x0 := x1;
+        END;
+        x0 := x1 * fac(x-1)
+      END;
+      x0 := x1 * fac(x-1)
+    END
+
+Sensible output is only defined for the parameter 3.
+
 
     FUN sqrt DO
       LOOP x1 DO
@@ -37,11 +76,13 @@ Does anything speak against nested function definitions?
 
 All the variables in a function definition are local. No way to access global.
 So the x1 in sqrt is another x1 than the one outside. Function definition is
-a statement so can come anywhere where a statement can come in the code. Before
-code is evaluated function definitions are stripped from the tree and saved
-in a separate table. If two functions with the same name are declared, the
-one declared later is used. This way I can include and implicit prelude but
-the user can overwrite e.g. sqrt with his own definition if he wants to.
+a statement so can come anywhere where a statement can come in the code.
+function definitions are saved in a separate environment. If two functions with
+the same name are declared, the latter overwrites the definition of the former
+for the following code. This way I can include and implicit prelude but the
+user can overwrite e.g. sqrt with his own definition if he wants to.
+
+Actually, functions are rather macros than "real functions".
 
 The following is an example useage
 
@@ -54,15 +95,21 @@ becomes (after "macro-expansion") -->
       c := c + 1;
       t := c * c;
       IF t = x5 THEN x2 := c END
-    END
+    END;
+    x2 := x2 + 1
 
 where x5, c and t are unused variables.
 
+
 -----------------------------------------------
-Import statement
+INCLUDE statement
 -----------------------------------------------
 
-IMPORT "std.loop" END
+INCLUDE "std.loop" END
+
+As with functions later include statements may overwrite the definitions of the
+previous include statements.
+
 
 ----------------------------------------------------
 How to reuse code / data types? (Open data types?)
@@ -113,16 +160,17 @@ While does not parse LOOPs:
               , try parseAssignStat
               ]
 
-While this approach works I don't like it principally. I create a big
-monolithic language and reduce it to fit the sublanguages I need whereas
+While this approach works I don't like it conceptually. A big monolithic
+language is created and then reduced to fit the respective sublanguages whereas
 I'd like to create a small core of shared language constructs and extend them
-to fit the suplanguage. I find the latter approach more natural.
+to fit the suplanguage. I find the latter approach more natural, more flexible
+and conceptually more beautiful.
 
 However, I don't see an easy solution in Haskell mostly since data types are
-closed as opposed to classes in OO languages. If I used an OO language I would
-have an idea how to design the code the second way simply because I could
-extend the definitions of the core language. So here comes a failed approach
-in Haskell:
+closed as opposed to e.g. classes in OO languages. If I used an OO language
+I would have an idea how to design the code the second way simply because
+I could extend the definitions of the core language. So here comes a failed
+approach in Haskell:
 
 
 ### Failution 2
@@ -182,9 +230,9 @@ be nested:
         = While BExp CoreStat
         | CoreStat CoreStat
 
-But I think the general idea how I want to structure the code becomes clear -
-even with these examples full of failure. So I thought to parameterize everything
-which leads to:
+But I think the general idea how I want to structure the code becomes clear
+- even with these examples full of failure. So I had the idea to parameterize
+everything which leads to:
 
 
 ### Solution 3
@@ -196,27 +244,30 @@ TODO Type classes, parametrization...
 
 oder
 
-    class Translatable a where
-        fromCore :: Core -> a
-        toCore :: a -> Core
+    -- not (necessarily) bijective
+    class Corephism a where
+        fromCore :: Stat -> a
+        toCore :: a -> Stat -- probably a partial function
 
     data Stat
         = Assign VarIdent AExp
         | If BExp Stat
         | IfElse BExp Stat Stat
+        | ForLoop VarIdent Stat
         | Seq [Stat]
 
-    instance Translatable Stat where
-        translate = id
+    instance Corephism Stat where
+        fromCore = id
+        toCore   = id
 
-    parseIfStat :: Translatable a => Parser a
+    parseIfStat :: Corephism a => Parser a
     parseIfStat = do 
         reserved "IF"
         cond <- parseRelExp
         reserved "THEN"
         thenpart <- parseStat
         reserved "END"
-        return $ translate $ If cond thenpart
+        return $ fromCore $ If cond thenpart
 
     {-...-}
 
@@ -230,11 +281,13 @@ oder
         | Loop VarIdent LoopStat
         | Seq [LoopStat]
 
-    instance Translatable LoopStat where
-        translate (C.Assign ident aexp) = Assign ident aexp
-        translate (C.If bexp stat) = If bexp (translate stat)
-        translate (C.IfElse bexp stat1 stat2) = IfElse bexp (translate stat1) (translate stat2)
-        translate (C.Seq stats) = Seq $ map translate stats
+    -- TODO: Would view patterns improve this code?
+    instance C.Corephism LoopStat where
+        fromCore (C.Assign ident aexp) = Assign ident aexp
+        fromCore (C.If bexp stat)      = If bexp (fromCore stat)
+        fromCore (C.IfElse bexp stat1 stat2) = IfElse bexp (fromCore stat1) (fromCore stat2)
+        fromCore (C.ForLoop i stat)    = Loop i (fromCore stat)
+        fromCore (C.Seq stats)         = Seq $ map translate stats
 
     parseLoopStat :: Parser LoopStat
     parseLoopStat = do
@@ -261,3 +314,9 @@ oder
 
 Can you help me? Maybe some advanced things like type families can help me 
 (although I don't really looked into them yet)? I hope my problem became clear.
+
+-------------------------------------------------------------------------------
+
+    class Core a where
+        toCore :: a -> CoreStat
+        fromCore :: CoreStat -> a

@@ -1,0 +1,124 @@
+module Language.LoopGotoWhile.While.Strict 
+    ( eval
+    , parse
+    , prettyPrint
+    ) where
+
+import Control.Monad
+import Control.Monad.ST
+import Data.STRef
+import Data.Maybe (fromJust)
+import Text.ParserCombinators.Parsec hiding (parse)
+
+import Language.LoopGotoWhile.Util (mkStdParser)
+import Language.LoopGotoWhile.While.StrictAS
+
+
+-- * Main Functions
+--   ==============
+
+-- | Given a strict While AST and a list of arguments evaluate the program
+-- and return the value of 'x0'.
+eval :: Program -> [Integer] -> Integer
+eval ast args = runST $ do
+    envRef <- nullEnv
+    forM_ [1..length args] $ \i ->
+        setVar envRef (toInteger i) (args !! (i-1))
+    eval' envRef ast
+    getVar envRef 0
+
+-- | Given a string representation of a strict While program parse it and
+-- return either an error string or the AST.
+parse :: String -> Either String Program
+parse = mkStdParser parseStats spaces
+
+
+-- * Evaluation
+--   ==========
+
+type Env s = STRef s [(Index, STRef s Integer)]
+
+eval' :: Env s -> Stat -> ST s ()
+eval' env (Assign i j Plus c) = do
+    xj <- getVar env j
+    setVar env i (xj + c)
+eval' env (Assign i j Minus c) = do
+    xj <- getVar env j
+    setVar env i (max (xj - c) 0)
+eval' env w@(While n stat) = do
+    xn <- getVar env n
+    if xn == 0
+       then return ()
+       else eval' env stat >> eval' env w
+eval' env (Seq stats) = mapM_ (eval' env) stats
+
+-- TODO: Is there a better way to achieve this?
+nullEnv :: ST s (Env s)
+nullEnv = newSTRef =<< return . zip [0..] =<< lazyRefs
+  where lazyRefs = do
+          x  <- newSTRef 0
+          xs <- unsafeInterleaveST lazyRefs
+          return (x:xs)
+
+getVar :: Env s -> Index -> ST s Integer
+getVar envRef i = readSTRef envRef >>= readSTRef . fromJust . lookup i
+
+setVar :: Env s -> Index -> Integer -> ST s ()
+setVar envRef i v = readSTRef envRef >>= flip writeSTRef v . fromJust . lookup i 
+
+
+-- * Parsing
+--   =======
+
+parseConst :: Parser Const
+parseConst = liftM read (many1 digit <?> "constant")
+
+parseVar :: Parser Index
+parseVar = liftM read (char 'x' >> many1 (digit <?> "") <?> "variable")
+
+parseOp :: Parser Op
+parseOp = do
+    op <- oneOf "+-"
+    case op of
+      '+' -> return Plus
+      '-' -> return Minus
+      _   -> fail "Wrong operator"
+
+parseAssign :: Parser Stat
+parseAssign = do
+    x <- parseVar
+    spaces
+    _ <- string ":="
+    spaces
+    y <- parseVar
+    spaces
+    o <- parseOp
+    spaces
+    c <- parseConst
+    spaces
+    return $ Assign x y o c
+
+parseWhile :: Parser Stat
+parseWhile = do
+    _ <- string "WHILE"
+    spaces
+    x <- parseVar
+    spaces
+    _ <- string "!="
+    spaces
+    _ <- string "0"
+    spaces
+    _ <- string "DO"
+    spaces
+    body <- parseStats
+    spaces
+    _ <- string "END"
+    return $ While x body
+
+parseStats :: Parser Program
+parseStats = do
+    stats <- parseStat `sepBy` (string ";" >> spaces)
+    return $ case stats of
+               [x] -> x
+               x   -> Seq x
+  where parseStat = parseAssign <|> parseWhile

@@ -1,4 +1,4 @@
-module Language.LoopGotoWhile.Loop.Extended
+module Language.LoopGotoWhile.While.Extended
     ( eval
     , parse
     , prettyPrint
@@ -15,20 +15,20 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language (javaStyle)
 
 import Language.LoopGotoWhile.Util (mkStdParser)
-import Language.LoopGotoWhile.Loop.ExtendedAS
-import qualified Language.LoopGotoWhile.Loop.Strict as Strict
-import Language.LoopGotoWhile.Loop.Transform (toStrict)
+import Language.LoopGotoWhile.While.ExtendedAS
+import qualified Language.LoopGotoWhile.While.Strict as Strict
+import Language.LoopGotoWhile.While.Transform (toStrict)
 
 
 -- * Main Functions
 --   ==============
 
--- | Given an extended Loop AST and a list of arguments evaluate the program
+-- | Given an extended While AST and a list of arguments evaluate the program
 -- and return the value of 'x0'.
 eval :: Program -> [Integer] -> Integer
 eval ast args = Strict.eval (toStrict ast) args 
 
--- | Given a string representation of an extended Loop program parse it and
+-- | Given a string representation of an extended While program parse it and
 -- return either an error string or the AST.
 parse :: String -> Either String Program
 parse = mkStdParser parseProgram whiteSpace
@@ -46,7 +46,7 @@ parseStat :: Parser Stat
 parseStat = choice 
           [ try parseIfElseStat
           , parseIfStat
-          , parseLoopStat
+          , parseWhileStat
           , try parseAssignStat
           ]
 
@@ -77,14 +77,14 @@ parseIfElseStat = do
     reserved "END"
     return $ If cond thenpart (Just elsepart)
              
-parseLoopStat :: Parser Stat
-parseLoopStat = do
-   reserved "LOOP"
-   a <- parseAritExp
+parseWhileStat :: Parser Stat
+parseWhileStat = do
+   reserved "WHILE"
+   b <- parseBoolExp
    reserved "DO"
    body <- parseProgram
    reserved "END"
-   return $ Loop a body
+   return $ While b body
 
 parseBoolExp :: Parser BExp
 parseBoolExp = buildExpressionParser boolOperators parseSimpleBool
@@ -160,16 +160,16 @@ parseVar = liftM Var (identifier <?> "identifier")
 
 -- TODO: Type annotations
 
-lexer     = P.makeTokenParser loopDef
+lexer     = P.makeTokenParser whileDef
 
-loopDef   = javaStyle
-          { P.reservedNames   = [ "LOOP", "DO", "END", "IF", "THEN", "ELSE" ]
+whileDef  = javaStyle
+          { P.reservedNames   = [ "WHILE", "DO", "END", "IF", "THEN", "ELSE" ]
           , P.reservedOpNames = [ ":=" 
                                 , "+", "-", "*", "/", "^", "%"
                                 , "=", "!=", "<", "<=", ">", ">=" 
                                 , "!", "&&", "||"
                                 ]
-          , P.opLetter        = oneOf (concat (P.reservedOpNames loopDef))
+          , P.opLetter        = oneOf (concat (P.reservedOpNames whileDef))
           , P.caseSensitive   = True
           }
 
