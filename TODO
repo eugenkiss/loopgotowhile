@@ -1,5 +1,3 @@
-- extract renameAexp renameBexp to shared
-- extract getVarNamesAexp getVarNamesBexp to shared
 - extract arithparser, boolparser to shared (extended)
 - try to extract parseVar, parseConst to shared even from strict
 - disallow the empty program!

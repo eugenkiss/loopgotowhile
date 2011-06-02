@@ -1,3 +1,5 @@
+-- | Functions for transforming Loop into Goto, While or into a semantically
+-- equivalent strict subset.
 module Language.LoopGotoWhile.Loop.Transform
     ( toExtended
     , toStrict
@@ -7,29 +9,34 @@ module Language.LoopGotoWhile.Loop.Transform
 
 import Control.Monad
 import Control.Monad.State
-import Data.Char (isDigit)
-import Data.List (partition, nub, (\\), union)
+import Data.List ((\\), nub, union)
 
-import Language.LoopGotoWhile.Shared.Transform (getUnusedVar, getStrictUnusedVars)
-import Language.LoopGotoWhile.Loop.ExtendedAS
-import qualified Language.LoopGotoWhile.Loop.StrictAS as StrictAS
 import qualified Language.LoopGotoWhile.While.ExtendedAS as While
 import qualified Language.LoopGotoWhile.While.Transform as WhileT
+import qualified Language.LoopGotoWhile.Goto.ExtendedAS as Goto
+import qualified Language.LoopGotoWhile.Loop.StrictAS as Strict
+import Language.LoopGotoWhile.Loop.ExtendedAS
+import Language.LoopGotoWhile.Shared.Transform 
 
 
 -- * Transformation from strict Loop to extended Loop
 --   ================================================
 
 -- | Transform a strict syntax tree into an extended one without changing the
--- semantics of the program.
-toExtended :: StrictAS.Stat -> Stat
-toExtended (StrictAS.Assign i j StrictAS.Plus c) = 
+-- semantics of the program. 
+--
+-- Since the strict syntax is a subset of the extended syntax this functions
+-- merely translates the strict data constructors to the extended ones in
+-- a very direct manner. This function is only needed to make some
+-- transformations / function compositions easier.
+toExtended :: Strict.Stat -> Stat
+toExtended (Strict.Assign i j Strict.Plus c) = 
     Assign ('x' : show i) (AOp "+" (Var ('x' : show j)) (Const c))
-toExtended (StrictAS.Assign i j StrictAS.Minus c) = 
+toExtended (Strict.Assign i j Strict.Minus c) = 
     Assign ('x' : show i) (AOp "-" (Var ('x' : show j)) (Const c))
-toExtended (StrictAS.Loop i stat) = 
+toExtended (Strict.Loop i stat) = 
     Loop (Var ('x' : show i)) (toExtended stat)
-toExtended (StrictAS.Seq stats) =
+toExtended (Strict.Seq stats) =
     Seq $ map toExtended stats
 
 
@@ -38,30 +45,23 @@ toExtended (StrictAS.Seq stats) =
 
 -- | Transform an extended syntax tree into a strict one without changing the
 -- semantics of the program.
-toStrict :: Stat -> StrictAS.Stat
-toStrict = toStrictLoop . toStrictStat . toStrictVars
+toStrict :: Program -> Strict.Program
+toStrict = toStrict' . toStrictStat . toStrictVars
 
 -- | Transform an extended syntax tree into a strict one. Assume that the AST
 -- is given in a directly translatable form.
-toStrictLoop :: Stat -> StrictAS.Stat
-toStrictLoop (Assign (_:i) (AOp "+" (Var (_:j)) (Const c))) = 
-    StrictAS.Assign (read i) (read j) StrictAS.Plus c
-toStrictLoop (Assign (_:i) (AOp "-" (Var (_:j)) (Const c))) = 
-    StrictAS.Assign (read i) (read j) StrictAS.Minus c
-toStrictLoop (Loop (Var (_:i)) stat) = StrictAS.Loop (read i) (toStrictLoop stat)
-toStrictLoop (Seq stats)       = StrictAS.Seq (map toStrictLoop stats)
-toStrictLoop ast               = error $ "Extended AST is not in strict form: "
-                                      ++ show ast 
+toStrict' :: Program -> Strict.Program
+toStrict' (Assign (_:i) (AOp "+" (Var (_:j)) (Const c))) = 
+    Strict.Assign (read i) (read j) Strict.Plus c
+toStrict' (Assign (_:i) (AOp "-" (Var (_:j)) (Const c))) = 
+    Strict.Assign (read i) (read j) Strict.Minus c
+toStrict' (Loop (Var (_:i)) stat) = Strict.Loop (read i) (toStrict' stat)
+toStrict' (Seq stats) = Strict.Seq (map toStrict' stats)
+toStrict' ast = error $ "Extended AST is not in strict form: " ++ show ast 
 
 
 -- ** Renaming of Variables
 --    ---------------------
-
--- TODO: Would it be faster to give `renameVar` a list of renameMappings and
--- only traverse the AST once? (I suggest it isn't, since either way I need to
--- do the same number of steps; If I visit n stages of the AST k times (k is
--- the the length of the mappings list) or I need to check k mappings at each
--- of the n stages -> same difference.
 
 -- | Change all occurences of unstrict variable names into strict variable
 -- names without altering the semantics of the AST.
@@ -80,37 +80,20 @@ renameVar from to ast = case ast of
     If bexp s1 Nothing   -> If (rBExp bexp) (rVar s1) Nothing
     If bexp s1 (Just s2) -> If (rBExp bexp) (rVar s1) (Just (rVar s2))
     Seq stats            -> Seq (map rVar stats)
-  where rVar      = renameVar from to
-        rAExp (Var var)      = Var (r var)
-        rAExp (AOp op e1 e2) = AOp op (rAExp e1) (rAExp e2)
-        rAExp x              = x
-        rBExp (RelOp op e1 e2) = RelOp op (rAExp e1) (rAExp e2)
-        rBExp x                = x
+  where rVar  = renameVar from to
+        rAExp = renameVarInAExp from to
+        rBExp = renameVarInBExp from to
         r var | var == from = to | otherwise = var
      
 -- | Analyze the AST and return a list without duplicates of all used variable
 -- names.
 getVarNames :: Stat -> [VarIdent]
 getVarNames = nub . f
-  where f (Assign var aexp)      = var : f' aexp
-        f (Loop aexp stat)       = f' aexp ++ f stat
-        f (If bexp s1 Nothing)   = f'' bexp ++ f s1
-        f (If bexp s1 (Just s2)) = f'' bexp ++ f s1 ++ f s2
+  where f (Assign var aexp)      = var : getVarNamesInAExp aexp
+        f (Loop aexp stat)       = getVarNamesInAExp aexp ++ f stat
+        f (If bexp s1 Nothing)   = getVarNamesInBExp bexp ++ f s1
+        f (If bexp s1 (Just s2)) = getVarNamesInBExp bexp ++ f s1 ++ f s2
         f (Seq stats)            = concatMap f stats
-        f' (Var var)             = [var]
-        f' (Const _)             = []
-        f' (AOp _ e1 e2)         = f' e1 ++ f' e2
-        f'' (RelOp _ e1 e2)      = f' e1 ++ f' e2
-        f'' _                    = []
-
--- | Partition a list of variable names into strict and unstrict names.
-partitionVars :: [VarIdent] -> ([VarIdent], [VarIdent])
-partitionVars = partition isStrictVar      
-
--- | Return true if the given identifier is strict.
-isStrictVar :: VarIdent -> Bool
-isStrictVar (x:xs) | not (null xs) = x == 'x' && all isDigit xs
-isStrictVar _      = False
 
 
 -- ** Statements
@@ -293,8 +276,7 @@ toStrictStat' _ = error $ "Not all cases were considered when transforming " ++
 
 -- | Transform a Loop AST to a While AST.
 toWhile :: Stat -> While.Stat
-toWhile ast = 
-    evalState (toWhile' ast) (getStrictUnusedVars (getVarNames ast))
+toWhile ast = evalState (toWhile' ast) (getStrictUnusedVars (getVarNames ast))
 
 -- The reason for the use of the state monad is that the transformation of a
 -- "for loop" to a while loop needs a previously unused variable and the list
@@ -325,4 +307,5 @@ toWhile' (Seq stats) = liftM While.Seq $ mapM toWhile' stats
 --   ======================
 
 -- | Transform a Loop AST to a Goto AST.
+toGoto :: Program -> Goto.Program
 toGoto = WhileT.toGoto . toWhile

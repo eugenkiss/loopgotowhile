@@ -1,3 +1,5 @@
+-- | Functions for transforming Goto into While or into a semantically
+-- equivalent strict subset.
 module Language.LoopGotoWhile.Goto.Transform
     ( toExtended
     , toStrict
@@ -16,15 +18,11 @@ import Data.Array.ST
 import Data.Char (isDigit)
 import Data.List (partition, nub, (\\), union)
 
-import Text.ParserCombinators.Parsec hiding (State)
-import Text.ParserCombinators.Parsec.Expr
-import Text.ParserCombinators.Parsec.Language (javaStyle)
-import qualified Text.ParserCombinators.Parsec.Token as P
-
-import Language.LoopGotoWhile.Goto.ExtendedAS
+import qualified Language.LoopGotoWhile.While.ExtendedAS as While
+import qualified Language.LoopGotoWhile.Goto.StrictAS as Strict
 import qualified Language.LoopGotoWhile.Shared.Transform as T
-import qualified Language.LoopGotoWhile.Goto.StrictAS as StrictAS
-import qualified Language.LoopGotoWhile.While.ExtendedAS as WhileAS
+import Language.LoopGotoWhile.Goto.ExtendedAS
+import Language.LoopGotoWhile.Shared.Transform hiding (getUnusedVar)
 
 
 -- * Transformation from strict Goto to extended Goto
@@ -32,19 +30,24 @@ import qualified Language.LoopGotoWhile.While.ExtendedAS as WhileAS
 
 -- | Transform a strict syntax tree into an extended one without changing the
 -- semantics of the program.
-toExtended :: StrictAS.Stat -> Stat
-toExtended (StrictAS.Assign l i j StrictAS.Plus c) = Label (indexToLabel l) $ 
+-- 
+-- Since the strict syntax is a subset of the extended syntax this functions
+-- merely translates the strict data constructors to the extended ones in
+-- a very direct manner. This function is only needed to make some
+-- transformations / function compositions easier.
+toExtended :: Strict.Stat -> Stat
+toExtended (Strict.Assign l i j Strict.Plus c) = Label (indexToLabel l) $ 
     Assign ('x' : show i) (AOp "+" (Var ('x' : show j)) (Const c))
-toExtended (StrictAS.Assign l i j StrictAS.Minus c) = Label (indexToLabel l) $
+toExtended (Strict.Assign l i j Strict.Minus c) = Label (indexToLabel l) $
     Assign ('x' : show i) (AOp "-" (Var ('x' : show j)) (Const c))
-toExtended (StrictAS.IfGoto l1 i c l2) = Label (indexToLabel l1) $
+toExtended (Strict.IfGoto l1 i c l2) = Label (indexToLabel l1) $
     If (RelOp "=" (Var ('x' : show i)) (Const c)) (Goto (indexToLabel l2)) Nothing
-toExtended (StrictAS.Goto l1 l2) = 
+toExtended (Strict.Goto l1 l2) = 
     Label (indexToLabel l1) $ Goto (indexToLabel l2)
-toExtended (StrictAS.Halt l) = Label (indexToLabel l) $ Halt
-toExtended (StrictAS.Seq stats) = Seq $ map toExtended stats
+toExtended (Strict.Halt l) = Label (indexToLabel l) $ Halt
+toExtended (Strict.Seq stats) = Seq $ map toExtended stats
 
-indexToLabel :: StrictAS.LIndex -> LIdent
+indexToLabel :: Strict.LIndex -> LIdent
 indexToLabel i = 'M' : show i
 
 
@@ -53,7 +56,7 @@ indexToLabel i = 'M' : show i
 
 -- | Transform an extended syntax tree into a strict one without changing the
 -- semantics of the program.
-toStrict :: Stat -> StrictAS.Stat
+toStrict :: Stat -> Strict.Stat
 toStrict = toStrictGoto 
          . flatten
          . addHalt 
@@ -64,20 +67,19 @@ toStrict = toStrictGoto
 
 -- | Transform an extended syntax tree into a strict one. Assume that the AST
 -- is given in a directly translatable form.
-toStrictGoto :: Stat -> StrictAS.Stat
+toStrictGoto :: Stat -> Strict.Stat
 toStrictGoto (Label l (Assign (_:i) (AOp "+" (Var (_:j)) (Const c)))) =
-    StrictAS.Assign (labelToIndex l) (read i) (read j) StrictAS.Plus c
+    Strict.Assign (labelToIndex l) (read i) (read j) Strict.Plus c
 toStrictGoto (Label l (Assign (_:i) (AOp "-" (Var (_:j)) (Const c)))) =
-    StrictAS.Assign (labelToIndex l) (read i) (read j) StrictAS.Minus c
+    Strict.Assign (labelToIndex l) (read i) (read j) Strict.Minus c
 toStrictGoto (Label l1 (If (RelOp "=" (Var (_:i)) (Const c)) (Goto l2) Nothing)) =
-    StrictAS.IfGoto (labelToIndex l1) (read i) c (labelToIndex l2)
-toStrictGoto (Label l1 (Goto l2)) = StrictAS.Goto (labelToIndex l1) (labelToIndex l2)
-toStrictGoto (Label l (Halt)) = StrictAS.Halt (labelToIndex l)
-toStrictGoto (Seq stats) = StrictAS.Seq (map toStrictGoto stats)
-toStrictGoto ast         = error $ "Extended AST is not in strict form: "
-                                 ++ show ast
+    Strict.IfGoto (labelToIndex l1) (read i) c (labelToIndex l2)
+toStrictGoto (Label l1 (Goto l2)) = Strict.Goto (labelToIndex l1) (labelToIndex l2)
+toStrictGoto (Label l (Halt)) = Strict.Halt (labelToIndex l)
+toStrictGoto (Seq stats) = Strict.Seq (map toStrictGoto stats)
+toStrictGoto ast = error $ "Extended AST is not in strict form: " ++ show ast
 
-labelToIndex :: LIdent -> StrictAS.LIndex
+labelToIndex :: LIdent -> Strict.LIndex
 labelToIndex (_:i) = read i
 
 -- | Unwrap the singleton sequence.
@@ -101,12 +103,13 @@ addHalt (Seq stats) = case lastStat of
 -- | Transform GOTOs with an undefined label to "M1".
 strictifyUndefLabels :: Stat -> Stat
 strictifyUndefLabels ast = case ast of
+    Assign var aexp      -> Assign var aexp
+    Halt                 -> Halt
     Goto l               -> Goto (r l)
     If bexp s Nothing    -> If bexp (sUL s) Nothing
     If bexp s1 (Just s2) -> If bexp (sUL s1) (Just (sUL s2))
     Label l stat         -> Label l (sUL stat)
     Seq stats            -> Seq (map sUL stats)
-    x                    -> x
   where sUL = strictifyUndefLabels
         r l | isStrictLab l = l | otherwise = "M1"
         isStrictLab (x:xs) | not (null xs) = x == 'M' && all isDigit xs
@@ -173,12 +176,13 @@ getStrictUnusedLabels used = labelStream \\ used
 -- names.
 getLabelNames :: Stat -> [LIdent]
 getLabelNames = nub . f
-  where f (If bexp s Nothing)    = f s
+  where f (Assign _ _)         = []
+        f (Halt)                 = []
+        f (If bexp s Nothing)    = f s
         f (If bexp s1 (Just s2)) = f s1 ++ f s2
         f (Goto l)               = [l] 
         f (Label l stat)         = l : f stat
         f (Seq stats)            = concatMap f stats
-        f x                      = []
 
 
 -- ** Renaming of Variables
@@ -189,51 +193,36 @@ getLabelNames = nub . f
 toStrictVars :: Stat -> Stat
 toStrictVars ast = foldr (uncurry renameVar) ast renameMappings
   where renameMappings     = zip unstrict unused
-        unused             = T.getStrictUnusedVars strict
+        unused             = getStrictUnusedVars strict
         (strict, unstrict) = partitionVars $ getVarNames ast
 
 -- | Rename all occurences of 'from' as a variable identifier to 'to' in the
 -- given AST.
 renameVar :: VarIdent -> VarIdent -> Stat -> Stat
 renameVar from to ast = case ast of
+    Halt                 -> Halt
+    Goto l               -> Goto l
     Assign var aexp      -> Assign (r var) (rAExp aexp)
     If bexp s1 Nothing   -> If (rBExp bexp) (rVar s1) Nothing
     If bexp s1 (Just s2) -> If (rBExp bexp) (rVar s1) (Just (rVar s2))
     Label l stat         -> Label l (rVar stat)
     Seq stats            -> Seq (map rVar stats)
-    x                    -> x
-  where rVar                 = renameVar from to
-        rAExp (Var var)      = Var (r var)
-        rAExp (AOp op e1 e2) = AOp op (rAExp e1) (rAExp e2)
-        rAExp x              = x
-        rBExp (RelOp op e1 e2) = RelOp op (rAExp e1) (rAExp e2)
-        rBExp x                = x
+  where rVar  = renameVar from to
+        rAExp = renameVarInAExp from to
+        rBExp = renameVarInBExp from to
         r var | var == from = to | otherwise = var
      
 -- | Analyze the AST and return a list without duplicates of all used variable
 -- names.
 getVarNames :: Stat -> [VarIdent]
 getVarNames = nub . f
-  where f (Assign var aexp)      = var : f' aexp
-        f (If bexp s1 Nothing)   = f'' bexp ++ f s1
-        f (If bexp s1 (Just s2)) = f'' bexp ++ f s1 ++ f s2
+  where f (Halt)                 = []
+        f (Goto _)               = []
+        f (Assign var aexp)      = var : getVarNamesInAExp aexp
+        f (If bexp s1 Nothing)   = getVarNamesInBExp bexp ++ f s1
+        f (If bexp s1 (Just s2)) = getVarNamesInBExp bexp ++ f s1 ++ f s2
         f (Label _ stat)         = f stat
         f (Seq stats)            = concatMap f stats
-        f _                      = []
-        f' (Var var)             = [var]
-        f' (Const _)             = []
-        f' (AOp _ e1 e2)         = f' e1 ++ f' e2
-        f'' (RelOp _ e1 e2)      = f' e1 ++ f' e2
-        f'' _                    = []
-
--- | Partition a list of variable names into strict and unstrict names.
-partitionVars :: [VarIdent] -> ([VarIdent], [VarIdent])
-partitionVars = partition isStrictVar    
-
--- | Return true if the given identifier is strict.
-isStrictVar :: VarIdent -> Bool
-isStrictVar (x:xs) | not (null xs) = x == 'x' && all isDigit xs
-isStrictVar _      = False
 
 
 -- ** Statements
@@ -253,7 +242,7 @@ toStrictStat ast =
 -- variable resp. label name is requested.
 type TransformState = StateT [LIdent] (State [VarIdent])
 
--- Lift getUnusedVar because of Monad Transformation madness!
+-- Lift getUnusedVar because of Monad Transformation Madness!
 getUnusedVar = lift T.getUnusedVar
 
 toStrictStat' :: Stat -> TransformState Stat
@@ -458,7 +447,7 @@ loopToGoto (Loop aexp stat) = do
 --   =======================
 
 -- | Transform a Goto AST to a While AST.
-toWhile :: Program -> WhileAS.Stat
+toWhile :: Program -> While.Stat
 toWhile ast = 
     evalState (toWhile' ast') (T.getStrictUnusedVars (getVarNames (toExtended ast')))
   where ast' = toStrict ast
@@ -466,35 +455,35 @@ toWhile ast =
 -- The reason for the use of the state monad is that the transformation of
 -- a goto program to a while program needs a previously unused variable and the
 -- list of unusued variables is carried along in the state. 
-toWhile' :: StrictAS.Program -> State [VarIdent] WhileAS.Stat
+toWhile' :: Strict.Program -> State [VarIdent] While.Stat
 toWhile' ast = do
     unused <- T.getUnusedVar
     let body = toWhile'' unused ast
-    return $ WhileAS.Seq
-                 [ WhileAS.Assign unused (WhileAS.Const 1)
-                 , WhileAS.While (WhileAS.RelOp "!=" (WhileAS.Var unused) (WhileAS.Const 0)) body
+    return $ While.Seq
+                 [ While.Assign unused (While.Const 1)
+                 , While.While (While.RelOp "!=" (While.Var unused) (While.Const 0)) body
                  ]
 
 -- The AST is first made strict and only then transformed to While because it
 -- is much easier to transform a strict Goto program than an extended.
-toWhile'' :: VarIdent -> StrictAS.Program -> WhileAS.Stat 
-toWhile'' x (StrictAS.Assign l i j op c) = 
-    WhileAS.If (WhileAS.RelOp "=" (WhileAS.Var x) (WhileAS.Const l)) (WhileAS.Seq
-        [ WhileAS.Assign ('x':show i) (WhileAS.AOp (show op) (WhileAS.Var ('x':show j)) (WhileAS.Const c))
-        , WhileAS.Assign x (WhileAS.AOp "+" (WhileAS.Var x) (WhileAS.Const 1))
+toWhile'' :: VarIdent -> Strict.Program -> While.Stat 
+toWhile'' x (Strict.Assign l i j op c) = 
+    While.If (While.RelOp "=" (While.Var x) (While.Const l)) (While.Seq
+        [ While.Assign ('x':show i) (While.AOp (show op) (While.Var ('x':show j)) (While.Const c))
+        , While.Assign x (While.AOp "+" (While.Var x) (While.Const 1))
         ]) Nothing
-toWhile'' x (StrictAS.Goto l1 l2) = 
-    WhileAS.If (WhileAS.RelOp "=" (WhileAS.Var x) (WhileAS.Const l1)) ( 
-        WhileAS.Assign x (WhileAS.Const l2)
+toWhile'' x (Strict.Goto l1 l2) = 
+    While.If (While.RelOp "=" (While.Var x) (While.Const l1)) ( 
+        While.Assign x (While.Const l2)
         ) Nothing
-toWhile'' x (StrictAS.Halt l) = 
-    WhileAS.If (WhileAS.RelOp "=" (WhileAS.Var x) (WhileAS.Const l)) ( 
-        WhileAS.Assign x (WhileAS.Const 0)
+toWhile'' x (Strict.Halt l) = 
+    While.If (While.RelOp "=" (While.Var x) (While.Const l)) ( 
+        While.Assign x (While.Const 0)
         ) Nothing
-toWhile'' x (StrictAS.IfGoto l1 i c l2) = 
-    WhileAS.If (WhileAS.RelOp "=" (WhileAS.Var x) (WhileAS.Const l1)) (
-        WhileAS.If (WhileAS.RelOp "=" (WhileAS.Var ('x':show i)) (WhileAS.Const c))
-              (WhileAS.Assign x (WhileAS.Const l2))
-              (Just (WhileAS.Assign x (WhileAS.AOp "+" (WhileAS.Var x) (WhileAS.Const 1))))
+toWhile'' x (Strict.IfGoto l1 i c l2) = 
+    While.If (While.RelOp "=" (While.Var x) (While.Const l1)) (
+        While.If (While.RelOp "=" (While.Var ('x':show i)) (While.Const c))
+              (While.Assign x (While.Const l2))
+              (Just (While.Assign x (While.AOp "+" (While.Var x) (While.Const 1))))
         ) Nothing
-toWhile'' x (StrictAS.Seq stats) = WhileAS.Seq $ map (toWhile'' x) stats
+toWhile'' x (Strict.Seq stats) = While.Seq $ map (toWhile'' x) stats
