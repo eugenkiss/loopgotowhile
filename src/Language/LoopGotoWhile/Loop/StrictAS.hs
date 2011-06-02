@@ -1,3 +1,4 @@
+-- | Data constructors (Abstract Syntax) and pretty printer for strict Loop.
 module Language.LoopGotoWhile.Loop.StrictAS 
     ( Stat (..)
     , Op (..)
@@ -27,16 +28,16 @@ data Stat
 
 
 prettyPrint :: Program -> String
-prettyPrint = prettyPrint' 0 ""
-  where prettyPrint' indentSize s (Assign i j op c) = s ++ 
+prettyPrint = prettyPrint' 0 
+  where prettyPrint' indentSize (Assign i j op c) = 
             indent indentSize ++ "x" ++ show i ++ " := " ++ 
             "x" ++ show j ++ " " ++ show op ++ " " ++ show c
-        prettyPrint' indentSize s (Loop i stat) = s ++ 
+        prettyPrint' indentSize (Loop i stat) =  
             indent indentSize ++ "LOOP x" ++ show i ++ " DO\n" ++ 
-            prettyPrint' (indentSize + tabSize) "" stat ++ "\n" ++
+            prettyPrint' (indentSize + tabSize) stat ++ "\n" ++
             indent indentSize ++ "END"
-        prettyPrint' indentSize s (Seq stats) = s ++
-            (intercalate ";\n" . map (prettyPrint' indentSize "") $ stats)
+        prettyPrint' indentSize (Seq stats) = 
+            intercalate ";\n" . map (prettyPrint' indentSize) $ stats
         indent size = replicate size ' '
         tabSize     = 2
 

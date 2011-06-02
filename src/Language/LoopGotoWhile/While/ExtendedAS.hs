@@ -1,3 +1,4 @@
+-- | Data constructors (Abstract Syntax) and pretty printer for extended While.
 module Language.LoopGotoWhile.While.ExtendedAS
     ( Program
     , VarIdent
@@ -26,25 +27,25 @@ data Stat
 
 -- | Return a standard string representation of an extended While AST.
 prettyPrint :: Program -> String
-prettyPrint = prettyPrint' 0 ""
-  where prettyPrint' indentSize s (Assign v a) = s ++ 
+prettyPrint = prettyPrint' 0
+  where prettyPrint' indentSize (Assign v a) =  
             indent indentSize ++ v ++ " := " ++ show a
-        prettyPrint' indentSize s (While b stat) = s ++ 
+        prettyPrint' indentSize (While b stat) =  
             indent indentSize ++ "WHILE " ++ show b ++ " DO\n" ++ 
-            prettyPrint' (indentSize + tabSize) "" stat ++ "\n" ++
+            prettyPrint' (indentSize + tabSize) stat ++ "\n" ++
             indent indentSize ++ "END"
-        prettyPrint' indentSize s (If b statThen Nothing) = s ++ 
+        prettyPrint' indentSize (If b statThen Nothing) = 
             indent indentSize ++ "IF " ++ show b ++ " THEN\n" ++ 
-            prettyPrint' (indentSize + tabSize) "" statThen ++ "\n" ++
+            prettyPrint' (indentSize + tabSize) statThen ++ "\n" ++
             indent indentSize ++ "END"
-        prettyPrint' indentSize s (If b statThen (Just statElse)) = s ++ 
+        prettyPrint' indentSize (If b statThen (Just statElse)) = 
             indent indentSize ++ "IF " ++ show b ++ " THEN\n" ++ 
-            prettyPrint' (indentSize + tabSize) "" statThen ++ "\n" ++
+            prettyPrint' (indentSize + tabSize) statThen ++ "\n" ++
             indent indentSize ++ "ELSE\n" ++
-            prettyPrint' (indentSize + tabSize) "" statElse ++ "\n" ++
+            prettyPrint' (indentSize + tabSize) statElse ++ "\n" ++
             indent indentSize ++ "END"
-        prettyPrint' indentSize s (Seq stats) = s ++
-            (intercalate ";\n" . map (prettyPrint' indentSize "") $ stats) 
+        prettyPrint' indentSize (Seq stats) = 
+            intercalate ";\n" . map (prettyPrint' indentSize) $ stats 
 
         indent size = replicate size ' '
         tabSize     = 2

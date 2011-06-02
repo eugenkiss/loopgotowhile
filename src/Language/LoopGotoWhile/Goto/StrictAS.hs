@@ -1,3 +1,4 @@
+-- | Data constructors (Abstract Syntax) and pretty printer for strict Goto.
 module Language.LoopGotoWhile.Goto.StrictAS 
     ( Stat (..)
     , Op (..)
@@ -34,17 +35,16 @@ data Stat
 
 -- | Return a standard string representation of a strict Goto AST.
 prettyPrint :: Program -> String
-prettyPrint = prettyPrint' ""
-  where prettyPrint' s (Assign l i j op c) = s ++ "M" ++ show l ++ ": " ++ 
-            "x" ++ show i ++ " := " ++ 
-            "x" ++ show j ++ " " ++ show op ++ " " ++ show c
-        prettyPrint' s (IfGoto l1 i c l2) = s ++ "M" ++ show l1 ++ ": " ++ 
-            "IF x" ++ show i ++ " = " ++ show c ++ " THEN GOTO M" ++ show l2 ++ " END"
-        prettyPrint' s (Goto l1 l2) = s ++ "M" ++ show l1 ++ ": " ++ 
-            "GOTO M" ++ show l2 
-        prettyPrint' s (Halt l) = s ++ "M" ++ show l ++ ": HALT" 
-        prettyPrint' s (Seq stats) = 
-            intercalate ";\n" . map (prettyPrint' "") $ stats 
+prettyPrint (Assign l i j op c) = 
+    "M" ++ show l ++ ": " ++ 
+    "x" ++ show i ++ " := " ++ 
+    "x" ++ show j ++ " " ++ show op ++ " " ++ show c
+prettyPrint (IfGoto l1 i c l2) = 
+    "M" ++ show l1 ++ ": " ++ 
+    "IF x" ++ show i ++ " = " ++ show c ++ " THEN GOTO M" ++ show l2 ++ " END"
+prettyPrint (Goto l1 l2) = "M" ++ show l1 ++ ": " ++ "GOTO M" ++ show l2 
+prettyPrint (Halt l) = "M" ++ show l ++ ": HALT" 
+prettyPrint (Seq stats) = intercalate ";\n" . map prettyPrint $ stats 
              
 instance Show Stat where
     show = prettyPrint

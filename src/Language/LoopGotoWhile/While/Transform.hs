@@ -8,7 +8,7 @@ module Language.LoopGotoWhile.While.Transform
 
 import Control.Monad
 import Control.Monad.State
-import Data.List ((\\), nub, union)
+import Data.List (nub)
 
 import qualified Language.LoopGotoWhile.Goto.ExtendedAS as GotoAS
 import qualified Language.LoopGotoWhile.While.StrictAS as Strict
@@ -112,7 +112,7 @@ toStrictStat ast =
 -- state that gets updated whenever an unused variable name is requested.
 toStrictStat' :: Stat -> State [VarIdent] Stat
 -- v0 := v1 +- c. Keep unchanged!
-toStrictStat' stat@(Assign v0 (AOp op (Var v1) (Const c)))
+toStrictStat' stat@(Assign _ (AOp op (Var _) (Const _)))
     | op `elem` ["+","-"] = return stat
 -- v0 := v1
 toStrictStat' (Assign v0 (Var v1)) = return $
@@ -152,7 +152,7 @@ toStrictStat' (Assign v0 (AOp op (Var v1) (Var v2))) = case op of
                          [ Assign c  (AOp "+" (Var c) (Const 1))
                          , Assign v0 (AOp "-" (Var v0) (Var v2))
                          ]) Nothing)
-              toStrictStat' $ Seq $
+              toStrictStat' $ Seq 
                   [ Assign c (Const 0)
                   , Assign v0 (Var v1)
                   , ltw
@@ -160,10 +160,11 @@ toStrictStat' (Assign v0 (AOp op (Var v1) (Var v2))) = case op of
                   ]
     "%" -> do ltw <- loopToWhile $ Loop (Var v0) (If (RelOp ">=" (Var v0) (Var v2))
                          (Assign v0 (AOp "-" (Var v0) (Var v2))) Nothing) 
-              toStrictStat' $ Seq $
+              toStrictStat' $ Seq
                   [ Assign v0 (Var v1)
                   , ltw
                   ]
+    _   -> error "Impossible! Wrong operator!"
 -- v0 := a o b
 toStrictStat' (Assign v0 (AOp op a b)) = do    -- v0 := a o b =>
     ua <- getUnusedVar
@@ -206,6 +207,7 @@ toStrictStat' (If (RelOp op a b) stat1 stat2) = case op of
     ">"  -> toStrictStat' $ If (RelOp "<" b a) stat1 stat2
     "<=" -> toStrictStat' $ If (BOp "||" (RelOp "<" a b) (RelOp "=" a b)) stat1 stat2
     ">=" -> toStrictStat' $ If (BOp "||" (RelOp ">" a b) (RelOp "=" a b)) stat1 stat2
+    _    -> error "Impossible! Wrong operator!"
   where f aexp = do
             u1 <- getUnusedVar
             u2 <- getUnusedVar
@@ -235,7 +237,7 @@ toStrictStat' (If (BOp "&&" a b) stat1 Nothing) = toStrictStat' $
 toStrictStat' (If (BOp "&&" a b) stat1 (Just stat2)) = do
     u <- getUnusedVar
     ltw <- loopToWhile $ Loop (Var u) stat2
-    toStrictStat' $ Seq $
+    toStrictStat' $ Seq 
         [ Assign u (Const 1)
         , If a (If b (Seq [Assign u (Const 0), stat1]) Nothing) Nothing
         , ltw
@@ -243,7 +245,7 @@ toStrictStat' (If (BOp "&&" a b) stat1 (Just stat2)) = do
 toStrictStat' (If (BOp "||" a b) stat1 Nothing) = do
     u <- getUnusedVar
     ltw <- loopToWhile $ Loop (Var u) stat1
-    toStrictStat' $ Seq $
+    toStrictStat' $ Seq 
         [ Assign u (Const 0)
         , If a (Assign u (Const 1)) Nothing
         , If b (Assign u (Const 1)) Nothing
@@ -254,7 +256,7 @@ toStrictStat' (If (BOp "||" a b) stat1 (Just stat2)) = do
     u2 <- getUnusedVar
     ltw1 <- loopToWhile $ Loop (Var u1) stat1
     ltw2 <- loopToWhile $ Loop (Var u2) stat2
-    toStrictStat' $ Seq $
+    toStrictStat' $ Seq 
         [ Assign u1 (Const 0)
         , Assign u2 (Const 1)
         , If a (Seq [Assign u1 (Const 1), Assign u2 (Const 0)]) Nothing
@@ -272,12 +274,14 @@ toStrictStat' (If (BNegOp bexp) stat1 stat2) = toStrictStat' $ case bexp of
     BOp "&&" a b -> If (BOp "||" (BNegOp a) (BNegOp b)) stat1 stat2
     BOp "||" a b -> If (BOp "&&" (BNegOp a) (BNegOp b)) stat1 stat2
     BNegOp bexp' -> If bexp' stat1 stat2
+    _ -> error "Impossible! Wrong operator!"
 -- WHILE a DO P END
-toStrictStat' (While rel@(RelOp "!=" (Var v0) (Const 0)) stat) = liftM (While rel) $ toStrictStat' stat
+toStrictStat' (While rel@(RelOp "!=" (Var _) (Const 0)) stat) = 
+    liftM (While rel) $ toStrictStat' stat
 toStrictStat' (While bexp stat) = do
     c <- getUnusedVar
     let if' = If bexp (Assign c (Const 1)) (Just (Assign c (Const 0)))
-    toStrictStat' $ Seq $
+    toStrictStat' $ Seq 
         [ if'
         , While (RelOp "!=" (Var c) (Const 0)) $ Seq
               [ stat

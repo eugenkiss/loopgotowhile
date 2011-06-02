@@ -1,3 +1,4 @@
+-- | Parsing and evaluation of strict While.
 module Language.LoopGotoWhile.While.Strict 
     ( eval
     , parse
@@ -8,6 +9,7 @@ import Control.Monad
 import Control.Monad.ST
 import Data.STRef
 import Data.Maybe (fromJust)
+
 import Text.ParserCombinators.Parsec hiding (parse)
 
 import Language.LoopGotoWhile.Shared.Util (mkStdParser)
@@ -47,9 +49,7 @@ eval' env (Assign i j Minus c) = do
     setVar env i (max (xj - c) 0)
 eval' env w@(While n stat) = do
     xn <- getVar env n
-    if xn == 0
-       then return ()
-       else eval' env stat >> eval' env w
+    unless (xn == 0) $ eval' env stat >> eval' env w
 eval' env (Seq stats) = mapM_ (eval' env) stats
 
 -- TODO: Is there a better way to achieve this? Yes, see TODO
@@ -70,33 +70,13 @@ setVar envRef i v = readSTRef envRef >>= flip writeSTRef v . fromJust . lookup i
 -- * Parsing
 --   =======
 
-parseConst :: Parser Const
-parseConst = liftM read (many1 digit <?> "constant")
-
-parseVar :: Parser Index
-parseVar = liftM read (char 'x' >> many1 (digit <?> "") <?> "variable")
-
-parseOp :: Parser Op
-parseOp = do
-    op <- oneOf "+-"
-    case op of
-      '+' -> return Plus
-      '-' -> return Minus
-      _   -> fail "Wrong operator"
-
-parseAssign :: Parser Stat
-parseAssign = do
-    x <- parseVar
-    spaces
-    _ <- string ":="
-    spaces
-    y <- parseVar
-    spaces
-    o <- parseOp
-    spaces
-    c <- parseConst
-    spaces
-    return $ Assign x y o c
+parseStats :: Parser Program
+parseStats = do
+    stats <- parseStat `sepBy1` (string ";" >> spaces)
+    return $ case stats of
+               [x] -> x
+               x   -> Seq x
+  where parseStat = parseAssign <|> parseWhile
 
 parseWhile :: Parser Stat
 parseWhile = do
@@ -115,10 +95,30 @@ parseWhile = do
     _ <- string "END"
     return $ While x body
 
-parseStats :: Parser Program
-parseStats = do
-    stats <- parseStat `sepBy` (string ";" >> spaces)
-    return $ case stats of
-               [x] -> x
-               x   -> Seq x
-  where parseStat = parseAssign <|> parseWhile
+parseAssign :: Parser Stat
+parseAssign = do
+    x <- parseVar
+    spaces
+    _ <- string ":="
+    spaces
+    y <- parseVar
+    spaces
+    o <- parseOp
+    spaces
+    c <- parseConst
+    spaces
+    return $ Assign x y o c
+
+parseOp :: Parser Op
+parseOp = do
+    op <- oneOf "+-"
+    case op of
+      '+' -> return Plus
+      '-' -> return Minus
+      _   -> fail "Wrong operator"
+
+parseConst :: Parser Const
+parseConst = liftM read (many1 digit <?> "constant")
+
+parseVar :: Parser Index
+parseVar = liftM read (char 'x' >> many1 (digit <?> "") <?> "variable")

@@ -1,13 +1,3 @@
-- put assertions in tests
-- disallow the empty program!
-
-- Remove the warnings (by improving the code)
-- Go through Todos and fix those that are possible
-- run HLint
-- Add better comments
-    - e.g. header of each file (read again haddock)
-- reorder parsers / functions so that more important are always at top of file
-- remove unused imports
 - Create provisory try in your browser website (export lib in cabal/code)
 - Create cltools
     - Options
@@ -17,7 +7,7 @@
         - -o, --output (default: stdout)
     - extract common functionality to shared
     - create executables in cabal
-- create readme / improve cabal file (explicit versions)
+- create readme / improve cabal file (explicit versions, description)
     - General Introduction without header
     - Try it: Link to server
     - If install: Explain command line tools breifly
@@ -82,34 +72,25 @@
 - ask Vollmer (ok with it, credit, using exercises/text from skript, is it
   correct that bloop floop inspired?...)
 
-- How to improve code?
-    - how to remove code duplication?
+
+How to improve the code?
+========================
+
+    - how to remove code duplication? Especially toStrict transformations.
         - how to better extract common functionality?
             - expression problem? open datatypes?
-    - ask questions from todos/test
     - should this be put on hackage?
     - Is there a reason in favor of Parsec3 instead of 2?
-    - Provided Parsec examples
-    - Other examples from internet
-    - Other parser libs?
-        - http://projects.haskell.org/grammar-combinators/
-        - Alex, Happy
     - Make languages instances of Foldable for e.g. easier renaming of vars?
+    - think about type class to get and change var names?
     - What advanced type features / language extensions / libraries could improve the code?
       Mainly remove code duplication by using abstractions?
-        - View Patterns?
-        - Type Families?
-        - uniplate?
-    - why the hell do I even keep the s around for pretty printing? delte it and
-      see if it makes any difference
-      also, there is no reason for the helper function for pretty printing goto
     - Improve evaluator so that instead of creating a lazy infinite list of STRefs
       just initialize STRef with 0 when it is first used, so that it doesn't take
       so much time to create the list from 0 till n, where n is a big number
       (e.g. x999999999999999 takes too long) (Maybe Map)
-    - think about type class to get and change var names?
     - unify naming convetions (e.g. if qualifed import AS than GotoAS not Goto)
-    - improve pretty printers
+    - improve output of pretty printers
         - e.g. dismiss superfluous parentheses
 - http://sigusr2.net/2011/Apr/18/parser-combinators-made-simple.html
 - http://book.realworldhaskell.org/read/using-parsec.html
@@ -117,6 +98,25 @@
 - http://hackage.haskell.org/cgi-bin/hackage-scripts/package/language-python
 - http://hackage.haskell.org/packages/archive/pkg-list.html#cat:language
 - http://www.cs.uu.nl/wiki/UHC/WebHome
+
+
+Try in your browser
+===================
+
+- create projects loopgotowhile-server, loopgotowhile-site
+
+- Think about trying in browser and how to prevent overloading of server
+    - https://github.com/chrisdone/haskell-json
+    - https://github.com/chrisdone/tryhaskell
+    - http://chrisdone.com/posts/2010-04-05-haskell-json-service-tryhaskell.html
+    - http://codemirror.net/ highlighted javascript
+    - this layout http://taitems.github.com/Front-End-Development-Guidelines/
+      everything one html file
+        copy content from readme file
+
+
+What's next?
+============
 
 - Function definition for extended with "lexical" scope + nested functions
     - look at the parsec examples to get some ideas but basically just a constructor Func FIdent Stat
@@ -139,16 +139,3 @@
       constructs (should become the same)
     - reduce transformation to strict tests for goto and while to only specific
       things if it has been possible to factor out common strict transform. code
-
-- hackage?
-
-- create projects loopgotowhile-server, loopgotowhile-site
-
-- Think about trying in browser and how to prevent overloading of server
-    - https://github.com/chrisdone/haskell-json
-    - https://github.com/chrisdone/tryhaskell
-    - http://chrisdone.com/posts/2010-04-05-haskell-json-service-tryhaskell.html
-    - http://codemirror.net/ highlighted javascript
-    - this layout http://taitems.github.com/Front-End-Development-Guidelines/
-      everything one html file
-        copy content from readme file

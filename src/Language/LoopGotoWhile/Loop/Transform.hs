@@ -9,7 +9,7 @@ module Language.LoopGotoWhile.Loop.Transform
 
 import Control.Monad
 import Control.Monad.State
-import Data.List ((\\), nub, union)
+import Data.List (nub)
 
 import qualified Language.LoopGotoWhile.While.ExtendedAS as While
 import qualified Language.LoopGotoWhile.While.Transform as WhileT
@@ -110,7 +110,7 @@ toStrictStat ast =
 -- state that gets updated whenever an unused variable name is requested.
 toStrictStat' :: Stat -> State [VarIdent] Stat
 -- v0 := v1 +- c. Keep unchanged!
-toStrictStat' stat@(Assign v0 (AOp op (Var v1) (Const c)))
+toStrictStat' stat@(Assign _ (AOp op (Var _) (Const _)))
     | op `elem` ["+","-"] = return stat
 -- v0 := v1
 toStrictStat' (Assign v0 (Var v1)) = return $
@@ -142,7 +142,7 @@ toStrictStat' (Assign v0 (AOp op (Var v1) (Var v2))) = case op of
                   , Assign v0 (Var u)
                   ]
     "/" -> do c <- getUnusedVar
-              toStrictStat' $ Seq $
+              toStrictStat' $ Seq 
                   [ Assign c (Const 0)
                   , Assign v0 (Var v1)
                   , Loop (Var v0) (If (RelOp ">=" (Var v0) (Var v2)) (Seq
@@ -152,11 +152,12 @@ toStrictStat' (Assign v0 (AOp op (Var v1) (Var v2))) = case op of
                     ) Nothing) 
                   , Assign v0 (Var c)
                   ]
-    "%" -> toStrictStat' $ Seq $
+    "%" -> toStrictStat' $ Seq 
                [ Assign v0 (Var v1)
                , Loop (Var v0) (If (RelOp ">=" (Var v0) (Var v2))
                    (Assign v0 (AOp "-" (Var v0) (Var v2))) Nothing)
                ]
+    _   -> error "Impossible! Wrong operator!"
 -- v0 := a o b
 toStrictStat' (Assign v0 (AOp op a b)) = do    -- v0 := a o b =>
     ua <- getUnusedVar
@@ -195,6 +196,7 @@ toStrictStat' (If (RelOp op a b) stat1 stat2) = case op of
     ">"  -> toStrictStat' $ If (RelOp "<" b a) stat1 stat2
     "<=" -> toStrictStat' $ If (BOp "||" (RelOp "<" a b) (RelOp "=" a b)) stat1 stat2
     ">=" -> toStrictStat' $ If (BOp "||" (RelOp ">" a b) (RelOp "=" a b)) stat1 stat2
+    _    -> error "Impossible! Wrong operator!"
   where f aexp = do 
             u1 <- getUnusedVar
             u2 <- getUnusedVar
@@ -219,14 +221,14 @@ toStrictStat' (If (BOp "&&" a b) stat1 Nothing) = toStrictStat' $
     If a (If b stat1 Nothing) Nothing
 toStrictStat' (If (BOp "&&" a b) stat1 (Just stat2)) = do
     u <- getUnusedVar
-    toStrictStat' $ Seq $
+    toStrictStat' $ Seq 
         [ Assign u (Const 1) 
         , If a (If b (Seq [Assign u (Const 0), stat1]) Nothing) Nothing
         , Loop (Var u) stat2
         ]
 toStrictStat' (If (BOp "||" a b) stat1 Nothing) = do
     u <- getUnusedVar
-    toStrictStat' $ Seq $
+    toStrictStat' $ Seq 
         [ Assign u (Const 0)
         , If a (Assign u (Const 1)) Nothing
         , If b (Assign u (Const 1)) Nothing
@@ -235,7 +237,7 @@ toStrictStat' (If (BOp "||" a b) stat1 Nothing) = do
 toStrictStat' (If (BOp "||" a b) stat1 (Just stat2)) = do
     u1 <- getUnusedVar
     u2 <- getUnusedVar
-    toStrictStat' $ Seq $
+    toStrictStat' $ Seq 
         [ Assign u1 (Const 0)
         , Assign u2 (Const 1)
         , If a (Seq [Assign u1 (Const 1), Assign u2 (Const 0)]) Nothing
@@ -253,11 +255,12 @@ toStrictStat' (If (BNegOp bexp) stat1 stat2) = toStrictStat' $ case bexp of
     BOp "&&" a b -> If (BOp "||" (BNegOp a) (BNegOp b)) stat1 stat2
     BOp "||" a b -> If (BOp "&&" (BNegOp a) (BNegOp b)) stat1 stat2
     BNegOp bexp' -> If bexp' stat1 stat2
+    _ -> error "Impossible! Wrong operator!"
 -- LOOP a DO P END
 toStrictStat' (Loop (Var v0) stat) = liftM (Loop (Var v0)) $ toStrictStat' stat
 toStrictStat' (Loop aexp stat) = do
     unused <- getUnusedVar
-    toStrictStat' $ Seq $
+    toStrictStat' $ Seq 
         [ Assign unused aexp
         , Loop (Var unused) stat
         ]

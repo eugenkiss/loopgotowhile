@@ -26,14 +26,15 @@ type Parser a = forall st. GenParser Char st a
 parseBoolExp :: Parser BExp
 parseBoolExp = buildExpressionParser boolOperators parseSimpleBool
 
+boolOperators :: forall st. [[Operator Char st BExp]]
 boolOperators =
     [ [ op "&&" AssocRight ]
     , [ op "||" AssocRight ] 
     ]
-  where op name assoc = Infix (do reservedOp name
-                                  return $ \x y -> BOp name x y 
-                                  ) assoc
+  where op name = Infix $ do reservedOp name
+                             return $ \x y -> BOp name x y 
 
+parseSimpleBool :: forall st. GenParser Char st BExp
 parseSimpleBool = choice 
                 [ try parseRelExp
                 , parens parseBoolExp
@@ -44,11 +45,11 @@ parseNegBool :: Parser BExp
 parseNegBool = do
     reservedOp "!"
     whiteSpace
-    string "("
+    _ <- string "("
     whiteSpace
     bexp <- parseBoolExp
     whiteSpace
-    string ")"
+    _ <- string ")"
     whiteSpace
     return $ BNegOp bexp
 
@@ -68,15 +69,15 @@ parseRelExp = do
 parseAritExp :: Parser AExp
 parseAritExp = buildExpressionParser aritOperators parseSimpleArit
 
+aritOperators :: forall st. [[Operator Char st AExp]]
 aritOperators =
     [ [ op "^" AssocRight ]
     , [ op "*" AssocLeft, op "/" AssocLeft ]
     , [ op "+" AssocLeft, op "-" AssocLeft ]
     , [ op "%" AssocRight ] 
     ]
-  where op name assoc = Infix (do reservedOp name
-                                  return $ \x y -> AOp name x y 
-                                  ) assoc
+  where op name = Infix $ do reservedOp name
+                             return $ \x y -> AOp name x y 
 
 parseSimpleArit :: Parser AExp
 parseSimpleArit = choice 
@@ -95,10 +96,10 @@ parseVar = liftM Var (identifier <?> "identifier")
 -- * Lexing
 --   ======
 
--- TODO: Type annotations
-
+lexer      :: forall st. P.TokenParser st
 lexer      = P.makeTokenParser sharedDef
 
+sharedDef  :: forall st. P.LanguageDef st
 sharedDef  = javaStyle
            { P.reservedOpNames = [ "+", "-", "*", "/", "^", "%"
                                  , "=", "!=", "<", "<=", ">", ">=" 
@@ -108,9 +109,15 @@ sharedDef  = javaStyle
            , P.caseSensitive   = True
            }
 
+parens     :: forall st a. CharParser st a -> CharParser st a
 parens     = P.parens lexer    
+whiteSpace :: forall st. CharParser st ()
 whiteSpace = P.whiteSpace lexer    
+symbol     :: forall st. String -> CharParser st String
 symbol     = P.symbol lexer    
+identifier :: forall st. CharParser st String
 identifier = P.identifier lexer    
+reservedOp :: forall st. String -> CharParser st ()
 reservedOp = P.reservedOp lexer
+integer    :: forall st. CharParser st Integer
 integer    = P.integer lexer    

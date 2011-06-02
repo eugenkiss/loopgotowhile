@@ -1,3 +1,4 @@
+-- | Parsing and evaluation of strict Goto.
 module Language.LoopGotoWhile.Goto.Strict 
     ( eval
     , parse
@@ -5,10 +6,8 @@ module Language.LoopGotoWhile.Goto.Strict
     ) where
 
 import Control.Monad
-import Control.Monad.ST
-import Data.STRef
-import Data.Maybe (fromJust)
-import Text.ParserCombinators.Parsec hiding (parse)
+
+import Text.ParserCombinators.Parsec hiding (parse, label)
 
 import Language.LoopGotoWhile.Shared.Util (mkStdParser)
 import Language.LoopGotoWhile.Goto.StrictAS
@@ -73,7 +72,7 @@ parseOp = do
 
 parseAssign :: GotoParser Stat
 parseAssign = do
-    l <- parseLabel
+    lab <- parseLabel
     spaces
     x <- parseVar
     spaces
@@ -86,16 +85,16 @@ parseAssign = do
     c <- parseConst
     spaces
     updateState $ \(l,_) -> (l,False)
-    return $ Assign l x y o c
+    return $ Assign lab x y o c
 
 parseHalt :: GotoParser Stat
 parseHalt = do
-    l <- parseLabel
+    lab <- parseLabel
     spaces
     _ <- string "HALT"
     spaces
     updateState $ \(l,_) -> (l,True)
-    return $ Halt l
+    return $ Halt lab
 
 parseGoto :: GotoParser Stat
 parseGoto = do
@@ -135,11 +134,10 @@ parseStats :: GotoParser Program
 parseStats = do
     stats <- parseStat `sepBy` (string ";" >> spaces)
     (_,b) <- getState
-    case b of
-      False -> fail "last statement is neither HALT nor GOTO"
-      True  -> return $ case stats of
-                 [x] -> x
-                 x   -> Seq x
+    if b then return $ case stats of
+                         [x] -> x
+                         x   -> Seq x
+       else fail "last statement is neither HALT nor GOTO"
   where parseStat = try parseAssign 
                 <|> try parseGoto 
                 <|> try parseIfGoto 

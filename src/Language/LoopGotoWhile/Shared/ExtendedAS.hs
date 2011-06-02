@@ -1,3 +1,5 @@
+-- | Shared data constructors (abstract syntax) like boolean & arithmetic
+-- expressions.
 module Language.LoopGotoWhile.Shared.ExtendedAS
     ( VarIdent
     , AExp (..) 

@@ -116,7 +116,7 @@ testParsing9 = assertBool "" $ isLeft $ runProgram [] $
     "x3 := x1 + 1"
 
 testParsing10 :: Assertion
-testParsing10 = assertBool "" $ isRight $ runProgram [] " "
+testParsing10 = assertBool "" $ isLeft $ runProgram [] " "
 
 
 -- Helper
@@ -130,7 +130,3 @@ runProgram' = flip $ evalProgram' parse eval
 isLeft :: Either a b -> Bool
 isLeft (Left _) = True
 isLeft _        = False
-
-isRight :: Either a b -> Bool
-isRight (Right _) = True
-isRight _         = False

@@ -1,3 +1,4 @@
+-- | Parsing and evaluation of strict Loop.
 module Language.LoopGotoWhile.Loop.Strict
     ( eval
     , parse
@@ -5,16 +6,14 @@ module Language.LoopGotoWhile.Loop.Strict
     ) where
 
 import Control.Monad
-import Control.Monad.ST
-import Data.STRef
-import Data.Maybe (fromJust)
+
 import Text.ParserCombinators.Parsec hiding (parse)
 
-import Language.LoopGotoWhile.Shared.Util (mkStdParser)
-import Language.LoopGotoWhile.Loop.StrictAS
-import Language.LoopGotoWhile.Loop.Transform (toExtended, toWhile)
 import qualified Language.LoopGotoWhile.While.Strict as WhileS
 import qualified Language.LoopGotoWhile.While.Transform as WhileT
+import Language.LoopGotoWhile.Loop.StrictAS
+import Language.LoopGotoWhile.Loop.Transform (toExtended, toWhile)
+import Language.LoopGotoWhile.Shared.Util (mkStdParser)
 
 
 -- * Main Functions
@@ -34,19 +33,26 @@ parse = mkStdParser parseStats () spaces
 -- * Parsing
 --   =======
 
-parseConst :: Parser Const
-parseConst = liftM read (many1 digit <?> "constant")
+parseStats :: Parser Program
+parseStats = do
+    stats <- parseStat `sepBy1` (string ";" >> spaces)
+    return $ case stats of
+               [x] -> x
+               x   -> Seq x
+  where parseStat = parseAssign <|> parseLoop
 
-parseVar :: Parser Index
-parseVar = liftM read (char 'x' >> many1 (digit <?> "") <?> "variable")
-
-parseOp :: Parser Op
-parseOp = do
-    op <- oneOf "+-"
-    case op of
-      '+' -> return Plus
-      '-' -> return Minus
-      _   -> fail "Wrong operator"
+parseLoop :: Parser Stat
+parseLoop = do
+    _ <- string "LOOP"
+    spaces
+    x <- parseVar
+    spaces
+    _ <- string "DO"
+    spaces
+    body <- parseStats
+    spaces
+    _ <- string "END"
+    return $ Loop x body
 
 parseAssign :: Parser Stat
 parseAssign = do
@@ -62,23 +68,16 @@ parseAssign = do
     spaces
     return $ Assign x y o c
 
-parseLoop :: Parser Stat
-parseLoop = do
-    _ <- string "LOOP"
-    spaces
-    x <- parseVar
-    spaces
-    _ <- string "DO"
-    spaces
-    body <- parseStats
-    spaces
-    _ <- string "END"
-    return $ Loop x body
+parseOp :: Parser Op
+parseOp = do
+    op <- oneOf "+-"
+    case op of
+      '+' -> return Plus
+      '-' -> return Minus
+      _   -> fail "Wrong operator"
 
-parseStats :: Parser Program
-parseStats = do
-    stats <- parseStat `sepBy` (string ";" >> spaces)
-    return $ case stats of
-               [x] -> x
-               x   -> Seq x
-  where parseStat = parseAssign <|> parseLoop
+parseVar :: Parser Index
+parseVar = liftM read (char 'x' >> many1 (digit <?> "") <?> "variable")
+
+parseConst :: Parser Const
+parseConst = liftM read (many1 digit <?> "constant")

@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 -- | Parsing and evaluation of extended Goto.
 module Language.LoopGotoWhile.Goto.Extended
     ( eval
@@ -8,7 +9,7 @@ module Language.LoopGotoWhile.Goto.Extended
 import Control.Monad
 
 import qualified Text.ParserCombinators.Parsec.Token as P
-import Text.ParserCombinators.Parsec hiding (State, parse)
+import Text.ParserCombinators.Parsec hiding (State, labels, parse)
 import Text.ParserCombinators.Parsec.Language (javaStyle)
 
 import qualified Language.LoopGotoWhile.Goto.Strict as Strict
@@ -24,7 +25,7 @@ import Language.LoopGotoWhile.Shared.Extended
 -- | Given an extended While AST and a list of arguments evaluate the program
 -- and return the value of 'x0'.
 eval :: Program -> [Integer] -> Integer
-eval ast args = Strict.eval (toStrict ast) args
+eval ast = Strict.eval (toStrict ast)
 
 -- | Given a string representation of an extended While program parse it and
 -- return either an error string or the AST.
@@ -55,7 +56,7 @@ parseStat = choice
 parseHalt :: GotoParser Stat
 parseHalt = do
     reserved "HALT"
-    return $ Halt
+    return Halt
 
 parseGoto :: GotoParser Stat
 parseGoto = do
@@ -99,10 +100,10 @@ parseWithLabel :: GotoParser Stat -> GotoParser Stat
 parseWithLabel p = do
     l <- identifier
     labels <- getState
-    when (l `elem` labels) $ do
+    when (l `elem` labels) $ 
        fail $ "Use of duplicate labels: " ++ l ++ " is already used!"
     updateState ((:) l)
-    symbol ":"
+    _ <- symbol ":"
     s <- p
     return $ Label l s
 
@@ -110,10 +111,10 @@ parseWithLabel p = do
 -- * Lexing
 --   ======
 
--- TODO: Type annotations
-
+lexer      :: forall st. P.TokenParser st
 lexer      = P.makeTokenParser gotoDef
 
+gotoDef    :: forall st. P.LanguageDef st
 gotoDef    = javaStyle
             { P.reservedNames   = [ "GOTO", "HALT", "END", "IF", "THEN", "ELSE" ]
             , P.reservedOpNames = [ ":="
@@ -125,9 +126,15 @@ gotoDef    = javaStyle
             , P.caseSensitive   = True
             }
 
-semiSep1   = P.semiSep1 lexer   
-whiteSpace = P.whiteSpace lexer   
-symbol     = P.symbol lexer   
-identifier = P.identifier lexer   
-reserved   = P.reserved lexer   
+semiSep1   :: forall st a. CharParser st a -> CharParser st [a]
+semiSep1   = P.semiSep1 lexer    
+whiteSpace :: forall st. CharParser st ()
+whiteSpace = P.whiteSpace lexer    
+identifier :: forall st. CharParser st String
+identifier = P.identifier lexer    
+reserved   :: forall st. String -> CharParser st ()
+reserved   = P.reserved lexer    
+reservedOp :: forall st. String -> CharParser st ()
 reservedOp = P.reservedOp lexer
+symbol     :: forall st. String -> CharParser st String
+symbol     = P.symbol lexer   

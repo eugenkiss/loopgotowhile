@@ -8,7 +8,6 @@ module Language.LoopGotoWhile.Shared.Transform
     , getVarNamesInBExp
     ) where
 
-import Control.Monad
 import Control.Monad.State
 import Data.List ((\\), partition, nub)
 import Data.Char (isDigit)
@@ -35,8 +34,10 @@ getUnusedVar = do
 -- variables *without* any strict variable that is already used in the program.
 getStrictUnusedVars :: [VarIdent] -> [VarIdent]
 getStrictUnusedVars used = varStream \\ used
-  where varStream = iterate (\x -> 'x' : (succ' (tail x))) "x1"
-        succ' s   = show $ toInteger (read s) + 1
+  where varStream = iterate (\x -> 'x' : succ' (tail x)) "x1"
+        succ' s   = show $ stoi s + 1
+          where stoi :: String -> Integer
+                stoi = read
 
 -- | Rename all occurences of 'from' as a variable identifier to 'to' in the 
 -- given arithmetic expression.

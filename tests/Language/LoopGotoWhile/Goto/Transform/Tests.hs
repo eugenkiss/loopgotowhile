@@ -4,7 +4,6 @@ import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test)
 
-import           Language.LoopGotoWhile.Shared.Util
 import qualified Language.LoopGotoWhile.Goto.Strict as Strict
 import qualified Language.LoopGotoWhile.Goto.StrictAS as StrictAS
 import           Language.LoopGotoWhile.Goto.ExtendedAS (Stat)
@@ -58,19 +57,23 @@ tests = [ testCase "goto/transform/strict/renaming1" testStrictRenaming1
 -- if) since the other transformations would already be covered by the Loop
 -- language tests.
 
+testStrictRenaming1 :: Assertion
 testStrictRenaming1 = toStrict (parseE e) @?= parseS s
   where e = "M1: x0 := x1 + 1"
         s = "M1: x0 := x1 + 1; M2: HALT"
 
+testStrictRenaming2 :: Assertion
 testStrictRenaming2 = toStrict (parseE e) @?= parseS s
   where e = "M1: x0 := v + 1"
         s = "M1: x0 := x1 + 1; M2: HALT"
 
 -- GOTOs with an undefined label are simply transformed to M1.
+testStrictRenaming3 :: Assertion
 testStrictRenaming3 = toStrict (parseE e) @?= parseS s
   where e = "M1: GOTO timbuktu"
         s = "M1: GOTO M1"
 
+testStrictRenaming4 :: Assertion
 testStrictRenaming4 = toStrict (parseE e) @?= parseS s
   where e = "      quux := foo  + 1;"  ++
             "M3:   bar  := foo  + 2;"  ++
@@ -88,6 +91,7 @@ testStrictRenaming4 = toStrict (parseE e) @?= parseS s
 -- This is a correct transformation of "x0 := x1 * x2". I encountered an
 -- logical error of mine for the label renaming and fixed the mistake. This is
 -- therefore a regression test.
+testStrictRenaming5 :: Assertion
 testStrictRenaming5 = toStrict (parseE e) @?= parseS s
   where e = "x3 := (x6 + 0);" ++
             "x4 := (x2 + 0);" ++
@@ -125,10 +129,12 @@ testStrictRenaming5 = toStrict (parseE e) @?= parseS s
             "M15: HALT" 
 
 
+testStrictAssignment1 :: Assertion
 testStrictAssignment1 = toStrict (parseE e) @?= parseS s
   where e = "x0 := x1"
         s = "M1: x0 := x1 + 0; M2: HALT"
 
+testStrictAssignment2 :: Assertion
 testStrictAssignment2 = toStrict (parseE e) @?= parseS s
   where e = "x0 := 42"
         s = "M1: x0 := x1 + 42; M2: HALT" -- x1 is unused
@@ -196,12 +202,14 @@ testStrictAssignment2 = toStrict (parseE e) @?= parseS s
              {-"  END "             ++ -- whitepsace is important here-}
              {-"END"                -}
 
+testStrictArithmetic7 :: Assertion
 testStrictArithmetic7 = toStrict (parseE e1) @?= toStrict (parseE e2)
   where e1 = "x0 := 7 + 42"
         e2 = "x1 := 7;"      ++ -- x1 is unused 
              "x2 := 42;"     ++ -- x2 us unused
              "x0 := x1 + x2"
 
+testStrictArithmetic8 :: Assertion
 testStrictArithmetic8 = toStrict (parseE e1) @?= toStrict (parseE e2)
   where e1 = "x0 := (x1 + 3) - x2"
         e2 = "x3 := x1 + 3;" ++ -- x3 is unused
@@ -374,6 +382,7 @@ testStrictArithmetic8 = toStrict (parseE e1) @?= toStrict (parseE e2)
              {-"  x1 := x1 + 0"              ++-}
              {-"END"-}
 
+testStrictControl9 :: Assertion
 testStrictControl9 = toStrict (parseE e1) @?= toStrict (parseE e2)
   where e1 = "IF x0 > 5 THEN" ++
              "  x0 := x0 + 0" ++
@@ -382,6 +391,7 @@ testStrictControl9 = toStrict (parseE e1) @?= toStrict (parseE e2)
              "  x0 := x0 + 0" ++
              "END"
 
+testStrictControl10 :: Assertion
 testStrictControl10 = toStrict (parseE e1) @?= toStrict (parseE e2)
   where e1 = "IF x0 > 5 && 5 < 6 THEN" ++
              "  x0 := x0 + 0"          ++
@@ -455,6 +465,7 @@ testStrictControl10 = toStrict (parseE e1) @?= toStrict (parseE e2)
              {-"  x1 := x1 + 0"   ++-}
              {-"END"-}
 
+testStrictControl14 :: Assertion
 testStrictControl14 = toStrict (parseE e1) @?= toStrict (parseE e2)
   where e1 = "IF x0 >= 5 THEN" ++
              "  x0 := x0 + 0" ++
@@ -463,6 +474,7 @@ testStrictControl14 = toStrict (parseE e1) @?= toStrict (parseE e2)
              "  x0 := x0 + 0" ++
              "END"
 
+testStrictControl15 :: Assertion
 testStrictControl15 = toStrict (parseE e1) @?= toStrict (parseE e2)
   where e1 = "IF !(x0 = 5) THEN" ++
              "  x0 := x0 + 0"    ++
@@ -471,6 +483,7 @@ testStrictControl15 = toStrict (parseE e1) @?= toStrict (parseE e2)
              "  x0 := x0 + 0"  ++ 
              "END"             
 
+testStrictControl16 :: Assertion
 testStrictControl16 = toStrict (parseE e1) @?= toStrict (parseE e2)
   where e1 = "IF !(!(!(!(x0 = 5)))) THEN" ++
              "  x0 := x0 + 0"             ++
@@ -479,6 +492,7 @@ testStrictControl16 = toStrict (parseE e1) @?= toStrict (parseE e2)
              "  x0 := x0 + 0" ++ 
              "END"             
 
+testStrictControl17 :: Assertion
 testStrictControl17 = toStrict (parseE e1) @?= toStrict (parseE e2)
   where e1 = "IF !(x0 = 5 && !(!(x1 < 6 || x0 > 6))) THEN" ++
              "  x0 := x0 + 0"                              ++
@@ -496,6 +510,7 @@ testStrictControl17 = toStrict (parseE e1) @?= toStrict (parseE e2)
 -- and then this strict program is transformed to a While program. Otherwise,
 -- it would be too tricky to transform Goto to While. That's why I don't use
 -- any extended Goto feature in this test (again to keep it simple).
+testToWhile1 :: Assertion
 testToWhile1 = toWhile (parseE e1) @?= parseWhile e2
   where e1 = "M1: x0 := x0 + 0;" ++
              "M2: GOTO M3;"      ++

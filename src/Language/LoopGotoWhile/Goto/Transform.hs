@@ -16,7 +16,7 @@ import Control.Monad.ST
 import Data.STRef
 import Data.Array.ST
 import Data.Char (isDigit)
-import Data.List (partition, nub, (\\), union)
+import Data.List ((\\), nub)
 
 import qualified Language.LoopGotoWhile.While.ExtendedAS as While
 import qualified Language.LoopGotoWhile.Goto.StrictAS as Strict
@@ -44,7 +44,7 @@ toExtended (Strict.IfGoto l1 i c l2) = Label (indexToLabel l1) $
     If (RelOp "=" (Var ('x' : show i)) (Const c)) (Goto (indexToLabel l2)) Nothing
 toExtended (Strict.Goto l1 l2) = 
     Label (indexToLabel l1) $ Goto (indexToLabel l2)
-toExtended (Strict.Halt l) = Label (indexToLabel l) $ Halt
+toExtended (Strict.Halt l) = Label (indexToLabel l) Halt
 toExtended (Strict.Seq stats) = Seq $ map toExtended stats
 
 indexToLabel :: Strict.LIndex -> LIdent
@@ -75,12 +75,13 @@ toStrictGoto (Label l (Assign (_:i) (AOp "-" (Var (_:j)) (Const c)))) =
 toStrictGoto (Label l1 (If (RelOp "=" (Var (_:i)) (Const c)) (Goto l2) Nothing)) =
     Strict.IfGoto (labelToIndex l1) (read i) c (labelToIndex l2)
 toStrictGoto (Label l1 (Goto l2)) = Strict.Goto (labelToIndex l1) (labelToIndex l2)
-toStrictGoto (Label l (Halt)) = Strict.Halt (labelToIndex l)
+toStrictGoto (Label l Halt) = Strict.Halt (labelToIndex l)
 toStrictGoto (Seq stats) = Strict.Seq (map toStrictGoto stats)
 toStrictGoto ast = error $ "Extended AST is not in strict form: " ++ show ast
 
 labelToIndex :: LIdent -> Strict.LIndex
 labelToIndex (_:i) = read i
+labelToIndex _     = error "Impossible"
 
 -- | Unwrap the singleton sequence.
 flatten :: Stat -> Stat
@@ -91,10 +92,11 @@ flatten x         = x
 addHalt :: Stat -> Stat
 addHalt (Seq stats) = case lastStat of
     Label _ (Goto _) -> Seq stats
-    Label _ (Halt)   -> Seq stats
+    Label _ Halt     -> Seq stats
     _                -> Seq $ stats ++ [Label ('M' : show (l + 1)) Halt]
   where l        = length stats
         lastStat = last stats
+addHalt _ = error "Impossible! Must be a sequence!"
 
 
 -- ** Renaming of Labels
@@ -134,11 +136,8 @@ toStrictLabels (Seq stats) = Seq $ runST $ do
                   s <- readArray arr j
                   let renamed = renameGotoLabel l newLabel s  
                   writeArray arr j (renameGotoLabel l newLabel s) 
-                  if s /= renamed
-                     then modifySTRef marked ((:) j)
-                     else return ()
-          other        -> do
-              writeArray arr i (Label newLabel other) 
+                  when (s /= renamed) $ modifySTRef marked ((:) j)
+          other -> writeArray arr i (Label newLabel other) 
     getElems arr
 toStrictLabels stat = toStrictLabels $ Seq [stat]
                            
@@ -148,7 +147,7 @@ renameGotoLabel from to stat = case stat of
     Goto l               -> Goto (r l)
     If bexp s Nothing    -> If bexp (rLab s) Nothing
     If bexp s1 (Just s2) -> If bexp (rLab s1) (Just (rLab s2))
-    Label l stat         -> Label l (rLab stat)
+    Label l s            -> Label l (rLab s)
     x                    -> x
   where rLab = renameGotoLabel from to
         r l | l == from = to | otherwise = l
@@ -169,20 +168,22 @@ getUnusedLabel = do
 -- labels *without* any strict label that is already used in the program.
 getStrictUnusedLabels :: [LIdent] -> [LIdent]
 getStrictUnusedLabels used = labelStream \\ used
-  where labelStream = iterate (\l -> 'M' : (succ' (tail l))) "M1"
-        succ' s     = show $ toInteger (read s) + 1
+  where labelStream = iterate (\l -> 'M' : succ' (tail l)) "M1"
+        succ' s     = show $ stoi s + 1
+          where stoi :: String -> Integer
+                stoi = read
 
 -- | Analyze the AST and return a list without duplicates of all used label
 -- names.
 getLabelNames :: Stat -> [LIdent]
 getLabelNames = nub . f
-  where f (Assign _ _)         = []
-        f (Halt)                 = []
-        f (If bexp s Nothing)    = f s
-        f (If bexp s1 (Just s2)) = f s1 ++ f s2
-        f (Goto l)               = [l] 
-        f (Label l stat)         = l : f stat
-        f (Seq stats)            = concatMap f stats
+  where f (Assign _ _)        = []
+        f (Halt)              = []
+        f (If _ s Nothing)    = f s
+        f (If _ s1 (Just s2)) = f s1 ++ f s2
+        f (Goto l)            = [l] 
+        f (Label l stat)      = l : f stat
+        f (Seq stats)         = concatMap f stats
 
 
 -- ** Renaming of Variables
@@ -243,6 +244,7 @@ toStrictStat ast =
 type TransformState = StateT [LIdent] (State [VarIdent])
 
 -- Lift getUnusedVar because of Monad Transformation Madness!
+getUnusedVar :: MonadTrans t => t (State [VarIdent]) VarIdent
 getUnusedVar = lift T.getUnusedVar
 
 toStrictStat' :: Stat -> TransformState Stat
@@ -251,7 +253,7 @@ toStrictStat' stat@(Goto _) = return stat
 -- HALT. Keep unchanged!
 toStrictStat' Halt = return Halt
 -- v0 := v1 +- c. Keep unchanged!
-toStrictStat' stat@(Assign v0 (AOp op (Var v1) (Const c)))
+toStrictStat' stat@(Assign _ (AOp op (Var _) (Const _)))
     | op `elem` ["+","-"] = return stat
 -- v0 := v1
 toStrictStat' (Assign v0 (Var v1)) = return $
@@ -291,7 +293,7 @@ toStrictStat' (Assign v0 (AOp op (Var v1) (Var v2))) = case op of
                          [ Assign c  (AOp "+" (Var c) (Const 1))
                          , Assign v0 (AOp "-" (Var v0) (Var v2))
                          ]) Nothing)
-              toStrictStat' $ Seq $
+              toStrictStat' $ Seq 
                   [ Assign c (Const 0)
                   , Assign v0 (Var v1)
                   , ltw
@@ -299,10 +301,11 @@ toStrictStat' (Assign v0 (AOp op (Var v1) (Var v2))) = case op of
                   ]
     "%" -> do ltw <- loopToGoto $ Loop (Var v0) (If (RelOp ">=" (Var v0) (Var v2))
                          (Assign v0 (AOp "-" (Var v0) (Var v2))) Nothing)
-              toStrictStat' $ Seq $
+              toStrictStat' $ Seq
                   [ Assign v0 (Var v1)
                   , ltw
                   ]
+    _   -> error "Impossible! Wrong operator!"
 -- v0 := a o b
 toStrictStat' (Assign v0 (AOp op a b)) = do    -- v0 := a o b =>
     ua <- getUnusedVar
@@ -348,6 +351,7 @@ toStrictStat' (If (RelOp op a b) stat1 stat2) = case op of
     ">"  -> toStrictStat' $ If (RelOp "<" b a) stat1 stat2
     "<=" -> toStrictStat' $ If (BOp "||" (RelOp "<" a b) (RelOp "=" a b)) stat1 stat2
     ">=" -> toStrictStat' $ If (BOp "||" (RelOp ">" a b) (RelOp "=" a b)) stat1 stat2
+    _    -> error "Impossible! Wrong operator!"
   where f aexp = do
             u1 <- getUnusedVar
             u2 <- getUnusedVar
@@ -377,7 +381,7 @@ toStrictStat' (If (BOp "&&" a b) stat1 Nothing) = toStrictStat' $
 toStrictStat' (If (BOp "&&" a b) stat1 (Just stat2)) = do
     u <- getUnusedVar
     ltw <- loopToGoto $ Loop (Var u) stat2
-    toStrictStat' $ Seq $
+    toStrictStat' $ Seq
         [ Assign u (Const 1)
         , If a (If b (Seq [Assign u (Const 0), stat1]) Nothing) Nothing
         , ltw
@@ -385,7 +389,7 @@ toStrictStat' (If (BOp "&&" a b) stat1 (Just stat2)) = do
 toStrictStat' (If (BOp "||" a b) stat1 Nothing) = do
     u <- getUnusedVar
     ltw <- loopToGoto $ Loop (Var u) stat1
-    toStrictStat' $ Seq $
+    toStrictStat' $ Seq
         [ Assign u (Const 0)
         , If a (Assign u (Const 1)) Nothing
         , If b (Assign u (Const 1)) Nothing
@@ -396,7 +400,7 @@ toStrictStat' (If (BOp "||" a b) stat1 (Just stat2)) = do
     u2 <- getUnusedVar
     ltw1 <- loopToGoto $ Loop (Var u1) stat1
     ltw2 <- loopToGoto $ Loop (Var u2) stat2
-    toStrictStat' $ Seq $
+    toStrictStat' $ Seq
         [ Assign u1 (Const 0)
         , Assign u2 (Const 1)
         , If a (Seq [Assign u1 (Const 1), Assign u2 (Const 0)]) Nothing
@@ -414,11 +418,12 @@ toStrictStat' (If (BNegOp bexp) stat1 stat2) = toStrictStat' $ case bexp of
     BOp "&&" a b -> If (BOp "||" (BNegOp a) (BNegOp b)) stat1 stat2
     BOp "||" a b -> If (BOp "&&" (BNegOp a) (BNegOp b)) stat1 stat2
     BNegOp bexp' -> If bexp' stat1 stat2
+    _ -> error "Impossible! Wrong operator!"
 -- Mx: P
 toStrictStat' (Label l stat) = liftM (Label l) (toStrictStat' stat)
 -- P1; P2;...
-toStrictStat' (Seq stats) = liftM (Seq . flatten) $ mapM toStrictStat' stats
-    where flatten = foldr f []
+toStrictStat' (Seq stats) = liftM (Seq . flatten') $ mapM toStrictStat' stats
+    where flatten' = foldr f []
           f (Seq stmnts) acc = stmnts ++ acc
           f x            acc = x : acc
 -- All cases must have been checked by now.

@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 -- | Parsing and evaluation of extended While.
 module Language.LoopGotoWhile.While.Extended
     ( eval
@@ -22,7 +23,7 @@ import Language.LoopGotoWhile.Shared.Extended
 -- | Given an extended While AST and a list of arguments evaluate the program
 -- and return the value of 'x0'.
 eval :: Program -> [Integer] -> Integer
-eval ast args = Strict.eval (toStrict ast) args 
+eval ast = Strict.eval (toStrict ast) 
 
 -- | Given a string representation of an extended While program parse it and
 -- return either an error string or the AST.
@@ -86,24 +87,28 @@ parseWhileStat = do
 -- * Lexing
 --   ======
 
--- TODO: Type annotations
+lexer      :: forall st. P.TokenParser st
+lexer      = P.makeTokenParser whileDef
 
-lexer     = P.makeTokenParser whileDef
+whileDef   :: forall st. P.LanguageDef st
+whileDef   = javaStyle
+           { P.reservedNames   = [ "WHILE", "DO", "END", "IF", "THEN", "ELSE" ]
+           , P.reservedOpNames = [ ":=" 
+                                 , "+", "-", "*", "/", "^", "%"
+                                 , "=", "!=", "<", "<=", ">", ">=" 
+                                 , "!", "&&", "||"
+                                 ]
+           , P.opLetter        = oneOf (concat (P.reservedOpNames whileDef))
+           , P.caseSensitive   = True
+           }
 
-whileDef  = javaStyle
-          { P.reservedNames   = [ "WHILE", "DO", "END", "IF", "THEN", "ELSE" ]
-          , P.reservedOpNames = [ ":=" 
-                                , "+", "-", "*", "/", "^", "%"
-                                , "=", "!=", "<", "<=", ">", ">=" 
-                                , "!", "&&", "||"
-                                ]
-          , P.opLetter        = oneOf (concat (P.reservedOpNames whileDef))
-          , P.caseSensitive   = True
-          }
-
+semiSep1   :: forall st a. CharParser st a -> CharParser st [a]
 semiSep1   = P.semiSep1 lexer    
+whiteSpace :: forall st. CharParser st ()
 whiteSpace = P.whiteSpace lexer    
-symbol     = P.symbol lexer    
+identifier :: forall st. CharParser st String
 identifier = P.identifier lexer    
+reserved   :: forall st. String -> CharParser st ()
 reserved   = P.reserved lexer    
+reservedOp :: forall st. String -> CharParser st ()
 reservedOp = P.reservedOp lexer
