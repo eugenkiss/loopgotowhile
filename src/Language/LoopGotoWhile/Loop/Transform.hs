@@ -10,15 +10,11 @@ import Control.Monad.State
 import Data.Char (isDigit)
 import Data.List (partition, nub, (\\), union)
 
-import Text.ParserCombinators.Parsec hiding (State)
-import Text.ParserCombinators.Parsec.Expr
-import Text.ParserCombinators.Parsec.Language (javaStyle)
-import qualified Text.ParserCombinators.Parsec.Token as P
-
 import Language.LoopGotoWhile.Common.Transform (getUnusedVar, getStrictUnusedVars)
 import Language.LoopGotoWhile.Loop.ExtendedAS
 import qualified Language.LoopGotoWhile.Loop.StrictAS as StrictAS
 import qualified Language.LoopGotoWhile.While.ExtendedAS as While
+import qualified Language.LoopGotoWhile.While.Transform as WhileT
 
 
 -- * Transformation from strict Loop to extended Loop
@@ -292,8 +288,8 @@ toStrictStat' _ = error $ "Not all cases were considered when transforming " ++
                           "extended Loop to strict Loop!"
 
 
--- * Transformation to While Language
---   ================================
+-- * Transformation to While
+--   =======================
 
 -- | Transform a Loop AST to a While AST.
 toWhile :: Stat -> While.Stat
@@ -301,8 +297,8 @@ toWhile ast =
     evalState (toWhile' ast) (getStrictUnusedVars (getVarNames ast))
 
 -- The reason for the use of the state monad is that the transformation of a
--- "for loop" to a while loop needs an previously unused variable and the list
--- of unusued variables is carried in the state.
+-- "for loop" to a while loop needs a previously unused variable and the list
+-- of unusued variables is carried along in the state.
 toWhile' :: Stat -> State [VarIdent] While.Stat
 toWhile' (Assign v aexp) = return $ While.Assign v aexp
 toWhile' (If bexp statThen statElse) = do
@@ -325,8 +321,8 @@ toWhile' (Loop aexp stat) = do
 toWhile' (Seq stats) = liftM While.Seq $ mapM toWhile' stats
     
 
--- * Transformation to Goto Language
---   ===============================
+-- * Transformation to Goto
+--   ======================
 
--- TODO: toGoto
-toGoto = undefined
+-- | Transform a Loop AST to a Goto AST.
+toGoto = WhileT.toGoto . toWhile

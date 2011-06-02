@@ -1,108 +1,155 @@
-module Language.LoopGotoWhile.While.Transform.Tests (tests) where
+module Language.LoopGotoWhile.Goto.Transform.Tests (tests) where
 
 import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test)
 
 import           Language.LoopGotoWhile.Util
-import qualified Language.LoopGotoWhile.While.Strict as Strict
-import qualified Language.LoopGotoWhile.While.StrictAS as StrictAS
-import           Language.LoopGotoWhile.While.ExtendedAS (Stat)
-import           Language.LoopGotoWhile.While.Extended (parse)
-import           Language.LoopGotoWhile.While.Transform (toStrict, toGoto)
-import qualified Language.LoopGotoWhile.Goto.Extended as Goto
-import qualified Language.LoopGotoWhile.Goto.ExtendedAS as GotoAS
+import qualified Language.LoopGotoWhile.Goto.Strict as Strict
+import qualified Language.LoopGotoWhile.Goto.StrictAS as StrictAS
+import           Language.LoopGotoWhile.Goto.ExtendedAS (Stat)
+import           Language.LoopGotoWhile.Goto.Extended (parse)
+import           Language.LoopGotoWhile.Goto.Transform (toStrict, toWhile)
+import qualified Language.LoopGotoWhile.While.Extended as While
+import qualified Language.LoopGotoWhile.While.ExtendedAS as WhileAS
 
 
 tests :: [Test]
-tests = [ testCase "while/transform/strict/renaming1" testStrictRenaming1
-        , testCase "while/transform/strict/renaming2" testStrictRenaming2
-        , testCase "while/transform/strict/renaming3" testStrictRenaming3
-        , testCase "while/transform/strict/assignment1" testStrictAssignment1
-        , testCase "while/transform/strict/assignment2" testStrictAssignment2
-        , testCase "while/transform/strict/arithmetic1" testStrictArithmetic1
-        , testCase "while/transform/strict/arithmetic2" testStrictArithmetic2
-        {-, testCase "while/transform/strict/arithmetic3" testStrictArithmetic3-}
-        {-, testCase "while/transform/strict/arithmetic4" testStrictArithmetic4-}
-        {-, testCase "while/transform/strict/arithmetic5" testStrictArithmetic5-}
-        , testCase "while/transform/strict/arithmetic6" testStrictArithmetic6
-        , testCase "while/transform/strict/arithmetic7" testStrictArithmetic7
-        , testCase "while/transform/strict/arithmetic8" testStrictArithmetic8
-        , testCase "while/transform/strict/control1" testStrictControl1
-        {-, testCase "while/transform/strict/control2" testStrictControl2-}
-        {-, testCase "while/transform/strict/control3" testStrictControl3-}
-        {-, testCase "while/transform/strict/control4" testStrictControl4-}
-        {-, testCase "while/transform/strict/control5" testStrictControl5-}
-        {-, testCase "while/transform/strict/control6" testStrictControl6-}
-        {-, testCase "while/transform/strict/control7" testStrictControl7-}
-        {-, testCase "while/transform/strict/control8" testStrictControl8-}
-        , testCase "while/transform/strict/control9" testStrictControl9
-        , testCase "while/transform/strict/control10" testStrictControl10
-        , testCase "while/transform/strict/control11" testStrictControl11
-        , testCase "while/transform/strict/control12" testStrictControl12
-        , testCase "while/transform/strict/control13" testStrictControl13
-        , testCase "while/transform/strict/control14" testStrictControl14
-        , testCase "while/transform/strict/control15" testStrictControl15
-        , testCase "while/transform/strict/control16" testStrictControl16
-        , testCase "while/transform/strict/control17" testStrictControl17
+tests = [ testCase "goto/transform/strict/renaming1" testStrictRenaming1
+        , testCase "goto/transform/strict/renaming2" testStrictRenaming2
+        , testCase "goto/transform/strict/renaming3" testStrictRenaming3
+        , testCase "goto/transform/strict/renaming4" testStrictRenaming4
+        , testCase "goto/transform/strict/renaming5" testStrictRenaming5
+        , testCase "goto/transform/strict/assignment1" testStrictAssignment1
+        , testCase "goto/transform/strict/assignment2" testStrictAssignment2
+        {-, testCase "goto/transform/strict/arithmetic1" testStrictArithmetic1-}
+        {-, testCase "goto/transform/strict/arithmetic2" testStrictArithmetic2-}
+        {-, testCase "goto/transform/strict/arithmetic3" testStrictArithmetic3-}
+        {-, testCase "goto/transform/strict/arithmetic4" testStrictArithmetic4-}
+        {-, testCase "goto/transform/strict/arithmetic5" testStrictArithmetic5-}
+        {-, testCase "goto/transform/strict/arithmetic6" testStrictArithmetic6-}
+        , testCase "goto/transform/strict/arithmetic7" testStrictArithmetic7
+        , testCase "goto/transform/strict/arithmetic8" testStrictArithmetic8
+        {-, testCase "goto/transform/strict/control1" testStrictControl1-}
+        {-, testCase "goto/transform/strict/control2" testStrictControl2-}
+        {-, testCase "goto/transform/strict/control3" testStrictControl3-}
+        {-, testCase "goto/transform/strict/control4" testStrictControl4-}
+        {-, testCase "goto/transform/strict/control5" testStrictControl5-}
+        {-, testCase "goto/transform/strict/control6" testStrictControl6-}
+        {-, testCase "goto/transform/strict/control7" testStrictControl7-}
+        {-, testCase "goto/transform/strict/control8" testStrictControl8-}
+        , testCase "goto/transform/strict/control9" testStrictControl9
+        , testCase "goto/transform/strict/control10" testStrictControl10
+        {-, testCase "goto/transform/strict/control11" testStrictControl11-}
+        {-, testCase "goto/transform/strict/control12" testStrictControl12-}
+        {-, testCase "goto/transform/strict/control13" testStrictControl13-}
+        , testCase "goto/transform/strict/control14" testStrictControl14
+        , testCase "goto/transform/strict/control15" testStrictControl15
+        , testCase "goto/transform/strict/control16" testStrictControl16
+        , testCase "goto/transform/strict/control17" testStrictControl17
 
-        , testCase "while/transform/goto/control1" testToGoto1
+        , testCase "goto/transform/while/towhile1" testToWhile1
         ]
 
 -- TODO: If I could somehow reduce the code duplication by using common code
 -- for all three languages to transform them to their strict subset, I would
--- only need to test the transformation of a "for loop" to a While loop and the
--- transformation of a While with an arbitrary boolean expression to a While
--- loop of the form "WHILE x0 != 0..." since the other transformations would
--- already be covered by the Loop language tests.
+-- only need to test the transformation of a "for loop" to a Goto loop and the
+-- transformation of some Goto specific things (e.g. a HALT in the body of an
+-- if) since the other transformations would already be covered by the Loop
+-- language tests.
 
 testStrictRenaming1 = toStrict (parseE e) @?= parseS s
-  where e = "x0 := x1 + 1"
-        s = "x0 := x1 + 1"
+  where e = "M1: x0 := x1 + 1"
+        s = "M1: x0 := x1 + 1; M2: HALT"
 
 testStrictRenaming2 = toStrict (parseE e) @?= parseS s
-  where e = "x0 := v + 1"
-        s = "x0 := x1 + 1"
+  where e = "M1: x0 := v + 1"
+        s = "M1: x0 := x1 + 1; M2: HALT"
 
+-- GOTOs with an undefined label are simply transformed to M1.
 testStrictRenaming3 = toStrict (parseE e) @?= parseS s
-  where e = "quux := foo  + 1;"  ++
-            "bar  := foo  + 2;"  ++
-            "x3   := quux + 0;"  ++
-            "WHILE quux != 0 DO" ++
-            "  x6 := bar + 0"    ++
-            "END"
-        s = "x1   := x2   + 1;"  ++
-            "x4   := x2   + 2;"  ++
-            "x3   := x1   + 0;"  ++
-            "WHILE x1   != 0 DO" ++
-            "  x6 := x4  + 0"    ++
-            "END"
+  where e = "M1: GOTO timbuktu"
+        s = "M1: GOTO M1"
+
+testStrictRenaming4 = toStrict (parseE e) @?= parseS s
+  where e = "      quux := foo  + 1;"  ++
+            "M3:   bar  := foo  + 2;"  ++
+            "      x3   := quux + 0;"  ++
+            "ij8h: quux := quux + 0;"  ++
+            "      x6   := bar  + 0;"  ++
+            "GOTO ij8h"
+        s = "M1:   x1   := x2   + 1;" ++
+            "M2:   x4   := x2   + 2;" ++
+            "M3:   x3   := x1   + 0;" ++
+            "M4:   x1   := x1   + 0;" ++
+            "M5:   x6   := x4   + 0;" ++
+            "M6: GOTO M4"
+
+-- This is a correct transformation of "x0 := x1 * x2". I encountered an
+-- logical error of mine for the label renaming and fixed the mistake. This is
+-- therefore a regression test.
+testStrictRenaming5 = toStrict (parseE e) @?= parseS s
+  where e = "x3 := (x6 + 0);" ++
+            "x4 := (x2 + 0);" ++
+            "M1: IF x4 = 0 THEN\n" ++
+            "GOTO M2\n" ++
+            "END;" ++
+            "x4 := (x4 - 1);" ++
+            "x3 := (x3 + 0);" ++
+            "x5 := (x1 + 0);" ++
+            "M3: IF (x5 = 0) THEN\n" ++
+            "GOTO M4\n" ++
+            "END;" ++
+            "x5 := (x5 - 1);" ++
+            "x3 := (x3 + 1);" ++
+            "GOTO M3;" ++
+            "M4: x5 := (x5 + 0);" ++
+            "GOTO M1;" ++
+            "M2: x4 := (x4 + 0);" ++
+            "x0 := (x3 + 0);" ++
+            "M15: HALT" 
+        s = "M1: x3 := x6 + 0;\n" ++
+            "M2: x4 := x2 + 0;\n " ++
+            "M3: IF x4 = 0 THEN GOTO M13 END;" ++
+            "M4: x4 := x4 - 1;" ++
+            "M5: x3 := x3 + 0;" ++
+            "M6: x5 := x1 + 0;" ++
+            "M7: IF x5 = 0 THEN GOTO M11 END;" ++
+            "M8: x5 := x5 - 1;" ++
+            "M9: x3 := x3 + 1;" ++
+            "M10: GOTO M7;" ++
+            "M11: x5 := x5 + 0;" ++
+            "M12: GOTO M3;" ++
+            "M13: x4 := x4 + 0;" ++
+            "M14: x0 := x3 + 0;" ++
+            "M15: HALT" 
+
 
 testStrictAssignment1 = toStrict (parseE e) @?= parseS s
   where e = "x0 := x1"
-        s = "x0 := x1 + 0"
+        s = "M1: x0 := x1 + 0; M2: HALT"
 
 testStrictAssignment2 = toStrict (parseE e) @?= parseS s
   where e = "x0 := 42"
-        s = "x0 := x1 + 42" -- x1 is unused
+        s = "M1: x0 := x1 + 42; M2: HALT" -- x1 is unused
 
-testStrictArithmetic1 = toStrict (parseE e) @?= parseS s
-  where e = "x0 := x1 + x2"
-        s = "x0 := x1 + 0;"    ++
-            "x3 := x2 + 0;"    ++ -- x3 is counter
-            "WHILE x3 != 0 DO" ++
-            "  x3 := x3 - 1;"  ++
-            "  x0 := x0 + 1"   ++
-            "END"            
+{-testStrictArithmetic1 = toStrict (parseE e) @?= parseS s-}
+  {-where e = "x0 := x1 + x2"-}
+        {-s = "x0 := x1 + 0;"    ++-}
+            {-"x3 := x2 + 0;"    ++ -- x3 is counter-}
+            {-"WHILE x3 != 0 DO" ++-}
+            {-"  x3 := x3 - 1;"  ++-}
+            {-"  x0 := x0 + 1"   ++-}
+            {-"END"            -}
 
-testStrictArithmetic2 = toStrict (parseE e) @?= parseS s
-  where e = "x0 := x1 - x2"
-        s = "x0 := x1 + 0;"    ++
-            "x3 := x2 + 0;"    ++ -- x3 is counter
-            "WHILE x3 != 0 DO" ++
-            "  x3 := x3 - 1;"  ++
-            "  x0 := x0 - 1"   ++
-            "END"            
+{-testStrictArithmetic2 = toStrict (parseE e) @?= parseS s-}
+  {-where e = "x0 := x1 - x2"-}
+        {-s = "x0 := x1 + 0;"    ++-}
+            {-"x3 := x2 + 0;"    ++ -- x3 is counter-}
+            {-"WHILE x3 != 0 DO" ++-}
+            {-"  x3 := x3 - 1;"  ++-}
+            {-"  x0 := x0 - 1"   ++-}
+            {-"END"            -}
 
 {-testStrictArithmetic3 = toStrict (parseE e1) @?= toStrict (parseE e2)-}
   {-where e1 = "x0 := x1 * x2"-}
@@ -138,16 +185,16 @@ testStrictArithmetic2 = toStrict (parseE e) @?= parseS s
              {-"END;"               ++-}
              {-"x0 := x3"-}
 
-testStrictArithmetic6 = toStrict (parseE e1) @?= toStrict (parseE e2)
-  where e1 = "x0 := x1 % x2"
-        e2 = "x0 := x1;"          ++
-             "x3 := x0;"          ++ -- x3 is counter
-             "WHILE x3 != 0 DO"   ++
-             "  x3 := x3 - 1;"    ++
-             "  IF x0 >= x2 THEN" ++ 
-             "    x0 := x0 - x2"  ++ 
-             "  END "             ++ -- whitepsace is important here
-             "END"                
+{-testStrictArithmetic6 = toStrict (parseE e1) @?= toStrict (parseE e2)-}
+  {-where e1 = "x0 := x1 % x2"-}
+        {-e2 = "x0 := x1;"          ++-}
+             {-"x3 := x0;"          ++ -- x3 is counter-}
+             {-"WHILE x3 != 0 DO"   ++-}
+             {-"  x3 := x3 - 1;"    ++-}
+             {-"  IF x0 >= x2 THEN" ++ -}
+             {-"    x0 := x0 - x2"  ++ -}
+             {-"  END "             ++ -- whitepsace is important here-}
+             {-"END"                -}
 
 testStrictArithmetic7 = toStrict (parseE e1) @?= toStrict (parseE e2)
   where e1 = "x0 := 7 + 42"
@@ -161,23 +208,23 @@ testStrictArithmetic8 = toStrict (parseE e1) @?= toStrict (parseE e2)
              "x4 := x2;"     ++ -- x4 is unused
              "x0 := x3 - x4" 
 
-testStrictControl1 = toStrict (parseE e1) @?= toStrict (parseE e2)
-  where e1 = "WHILE 1 != 0 DO" ++
-             "  x0 := x0 + 0"  ++
-             "END"
-        e2 = "IF 1 != 0 THEN"   ++
-             "  x1 := 1"        ++
-             "ELSE"             ++
-             "  x1 := 0"        ++
-             "END;"             ++
-             "WHILE x1 != 0 DO" ++
-             "  x0 := x0 + 0;"  ++
-             "  IF 1 != 0 THEN" ++
-             "    x1 := 1"      ++
-             "  ELSE"           ++
-             "    x1 := 0"      ++
-             "  END "           ++  
-             "END"              
+{-testStrictControl1 = toStrict (parseE e1) @?= toStrict (parseE e2)-}
+  {-where e1 = "WHILE 1 != 0 DO" ++-}
+             {-"  x0 := x0 + 0"  ++-}
+             {-"END"-}
+        {-e2 = "IF 1 != 0 THEN"   ++-}
+             {-"  x1 := 1"        ++-}
+             {-"ELSE"             ++-}
+             {-"  x1 := 0"        ++-}
+             {-"END;"             ++-}
+             {-"WHILE x1 != 0 DO" ++-}
+             {-"  x0 := x0 + 0;"  ++-}
+             {-"  IF 1 != 0 THEN" ++-}
+             {-"    x1 := 1"      ++-}
+             {-"  ELSE"           ++-}
+             {-"    x1 := 0"      ++-}
+             {-"  END "           ++  -}
+             {-"END"              -}
 
 {-testStrictControl1 = toStrict (parseE e) @?= parseS s-}
   {-where e = "WHILE 1 != 0 DO" ++-}
@@ -345,68 +392,68 @@ testStrictControl10 = toStrict (parseE e1) @?= toStrict (parseE e2)
              "  END "           ++ -- the space at the end is important!
              "END"
 
-testStrictControl11 = toStrict (parseE e1) @?= toStrict (parseE e2)
-  where e1 = "IF x0 > 5 && 5 < 6 THEN" ++
-             "  x0 := x0 + 0"          ++
-             "ELSE"                    ++
-             "  x1 := x1 + 0"          ++
-             "END"
-        e2 = "x2 := 1;"         ++ -- x2 is unused
-             "IF x0 > 5 THEN"   ++
-             "  IF 5 < 6 THEN"  ++
-             "    x2 := 0;"     ++
-             "    x0 := x0 + 0" ++
-             "  END "           ++
-             "END;"             ++
-             "x3 := x2;"        ++ -- x3 is counter
-             "WHILE x3 != 0 DO" ++
-             "  x3 := x3 - 1;"  ++
-             "  x1 := x1 + 0"   ++
-             "END"
+{-testStrictControl11 = toStrict (parseE e1) @?= toStrict (parseE e2)-}
+  {-where e1 = "IF x0 > 5 && 5 < 6 THEN" ++-}
+             {-"  x0 := x0 + 0"          ++-}
+             {-"ELSE"                    ++-}
+             {-"  x1 := x1 + 0"          ++-}
+             {-"END"-}
+        {-e2 = "x2 := 1;"         ++ -- x2 is unused-}
+             {-"IF x0 > 5 THEN"   ++-}
+             {-"  IF 5 < 6 THEN"  ++-}
+             {-"    x2 := 0;"     ++-}
+             {-"    x0 := x0 + 0" ++-}
+             {-"  END "           ++-}
+             {-"END;"             ++-}
+             {-"x3 := x2;"        ++ -- x3 is counter-}
+             {-"WHILE x3 != 0 DO" ++-}
+             {-"  x3 := x3 - 1;"  ++-}
+             {-"  x1 := x1 + 0"   ++-}
+             {-"END"-}
 
-testStrictControl12 = toStrict (parseE e1) @?= toStrict (parseE e2)
-  where e1 = "IF x0 > 5 || 5 < 6 THEN" ++
-             "  x0 := x0 + 0"          ++
-             "END"
-        e2 = "x1 := 0;"         ++ -- x1 is unused
-             "IF x0 > 5 THEN"   ++
-             "  x1 := 1"        ++ 
-             "END;"             ++
-             "IF 5 < 6 THEN"    ++
-             "  x1 := 1"        ++
-             "END;"             ++
-             "x2 := x1;"        ++ -- x2 is counter
-             "WHILE x2 != 0 DO" ++
-             "  x2 := x2 - 1;"  ++
-             "  x0 := x0 + 0"   ++
-             "END"
+{-testStrictControl12 = toStrict (parseE e1) @?= toStrict (parseE e2)-}
+  {-where e1 = "IF x0 > 5 || 5 < 6 THEN" ++-}
+             {-"  x0 := x0 + 0"          ++-}
+             {-"END"-}
+        {-e2 = "x1 := 0;"         ++ -- x1 is unused-}
+             {-"IF x0 > 5 THEN"   ++-}
+             {-"  x1 := 1"        ++ -}
+             {-"END;"             ++-}
+             {-"IF 5 < 6 THEN"    ++-}
+             {-"  x1 := 1"        ++-}
+             {-"END;"             ++-}
+             {-"x2 := x1;"        ++ -- x2 is counter-}
+             {-"WHILE x2 != 0 DO" ++-}
+             {-"  x2 := x2 - 1;"  ++-}
+             {-"  x0 := x0 + 0"   ++-}
+             {-"END"-}
 
-testStrictControl13 = toStrict (parseE e1) @?= toStrict (parseE e2)
-  where e1 = "IF x0 > 5 || 5 < 6 THEN" ++
-             "  x0 := x0 + 0"          ++
-             "ELSE"                    ++
-             "  x1 := x1 + 0"          ++
-             "END"
-        e2 = "x2 := 0;"         ++ -- x2 is unused
-             "x3 := 1;"         ++ -- x3 is unused
-             "IF x0 > 5 THEN"   ++
-             "  x2 := 1;"       ++
-             "  x3 := 0"        ++
-             "END;"             ++
-             "IF 5 < 6 THEN"    ++
-             "  x2 := 1;"       ++
-             "  x3 := 0"        ++
-             "END;"             ++
-             "x4 := x2;"        ++ -- x4 is counter
-             "WHILE x4 != 0 DO" ++
-             "  x4 := x4 - 1;"  ++
-             "  x0 := x0 + 0"   ++
-             "END;"             ++
-             "x5 := x3;"        ++ -- x5 is counter
-             "WHILE x5 != 0 DO" ++
-             "  x5 := x5 - 1;"  ++
-             "  x1 := x1 + 0"   ++
-             "END"
+{-testStrictControl13 = toStrict (parseE e1) @?= toStrict (parseE e2)-}
+  {-where e1 = "IF x0 > 5 || 5 < 6 THEN" ++-}
+             {-"  x0 := x0 + 0"          ++-}
+             {-"ELSE"                    ++-}
+             {-"  x1 := x1 + 0"          ++-}
+             {-"END"-}
+        {-e2 = "x2 := 0;"         ++ -- x2 is unused-}
+             {-"x3 := 1;"         ++ -- x3 is unused-}
+             {-"IF x0 > 5 THEN"   ++-}
+             {-"  x2 := 1;"       ++-}
+             {-"  x3 := 0"        ++-}
+             {-"END;"             ++-}
+             {-"IF 5 < 6 THEN"    ++-}
+             {-"  x2 := 1;"       ++-}
+             {-"  x3 := 0"        ++-}
+             {-"END;"             ++-}
+             {-"x4 := x2;"        ++ -- x4 is counter-}
+             {-"WHILE x4 != 0 DO" ++-}
+             {-"  x4 := x4 - 1;"  ++-}
+             {-"  x0 := x0 + 0"   ++-}
+             {-"END;"             ++-}
+             {-"x5 := x3;"        ++ -- x5 is counter-}
+             {-"WHILE x5 != 0 DO" ++-}
+             {-"  x5 := x5 - 1;"  ++-}
+             {-"  x1 := x1 + 0"   ++-}
+             {-"END"-}
 
 testStrictControl14 = toStrict (parseE e1) @?= toStrict (parseE e2)
   where e1 = "IF x0 >= 5 THEN" ++
@@ -445,16 +492,22 @@ testStrictControl17 = toStrict (parseE e1) @?= toStrict (parseE e2)
              "END"                                   
 
 
-testToGoto1 = toGoto (parseE e1) @?= parseGoto e2
-  where e1 = "WHILE x1 < 6 && 8 = 9 DO" ++
-             "  x1 := x1 + 1;"          ++
-             "  x1 := x1 + 1"          ++
+-- In reality the extended Goto program is transformed to a strict goto program
+-- and then this strict program is transformed to a While program. Otherwise,
+-- it would be too tricky to transform Goto to While. That's why I don't use
+-- any extended Goto feature in this test (again to keep it simple).
+testToWhile1 = toWhile (parseE e1) @?= parseWhile e2
+  where e1 = "M1: x0 := x0 + 0;" ++
+             "M2: GOTO M3;"      ++
+             "M3: IF x0 = 0 THEN GOTO M4 END;" ++
+             "M4: HALT"
+        e2 = "x1 := 1;"        ++
+             "WHILE x1 != 0 DO" ++
+             "  IF x1 = 1 THEN x0 := x0 + 0; x1 := x1 + 1 END;"  ++
+             "  IF x1 = 2 THEN x1 := 3 END;"  ++
+             "  IF x1 = 3 THEN IF x0 = 0 THEN x1 := 4 ELSE x1 := x1 + 1 END END;" ++
+             "  IF x1 = 4 THEN x1 := 0 END "  ++
              "END"
-        e2 = "M1: IF !(x1 < 6 && 8 = 9) THEN GOTO M2 END;" ++
-             "    x1 := x1 + 1;"                           ++
-             "    x1 := x1 + 1;"                           ++
-             "    GOTO M1;"                                ++
-             "M2: x0 := x0"
 
 
 -- Helper
@@ -471,8 +524,8 @@ parseS code = case Strict.parse code of
     Left  err -> error err
     Right ast -> ast
 
--- | Parse a string representation of an extended Goto program and return the AST.
-parseGoto :: String -> GotoAS.Stat
-parseGoto code = case Goto.parse code of
+-- | Parse a string representation of an extended While program and return the AST.
+parseWhile :: String -> WhileAS.Stat
+parseWhile code = case While.parse code of
     Left  err -> error err
     Right ast -> ast

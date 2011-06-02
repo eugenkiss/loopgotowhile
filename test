@@ -44,6 +44,15 @@ END
 
 Where c is a previously unused variable that represents a "boolean value".
 
+--------------------------------------------
+
+The behaviour for using an unspecified label in a GOTO statement is undefined.
+
+--------------------------------------------
+
+Some extended Goto programs are not at all optimized so that a simple
+division operation like x0 := x1 / x2 takes ridiculously long time to compute.
+
 -------------------
 Function definition
 -------------------

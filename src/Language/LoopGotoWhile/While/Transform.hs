@@ -6,6 +6,7 @@ module Language.LoopGotoWhile.While.Transform
 
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.ST
 import Data.Char (isDigit)
 import Data.List (partition, nub, (\\), union)
 
@@ -17,6 +18,11 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 import Language.LoopGotoWhile.Common.Transform (getUnusedVar, getStrictUnusedVars)
 import Language.LoopGotoWhile.While.ExtendedAS
 import qualified Language.LoopGotoWhile.While.StrictAS as StrictAS
+import qualified Language.LoopGotoWhile.Goto.ExtendedAS as GotoAS
+import Language.LoopGotoWhile.Goto.Transform ( TransformState
+                                             , getUnusedLabel
+                                             , getStrictUnusedLabels
+                                             )
 
 
 -- * Transformation from strict While to extended While
@@ -303,7 +309,7 @@ toStrictStat' (Seq stats) = liftM (Seq . flatten) $ mapM toStrictStat' stats
           f x            acc = x : acc
 -- All cases must have been checked by now.
 toStrictStat' _ = error $ "Not all cases were considered when transforming " ++
-                          "extended Loop to strict Loop!"
+                          "extended Goto to strict Goto!"
 
 -- Helper to make the toStrictStat' as close as possible to the Loop version
 data Loop = Loop AExp Stat
@@ -320,5 +326,38 @@ loopToWhile (Loop aexp stat) = do
         ]
 
 
--- TODO: toGoto
-toGoto = undefined
+-- * Transformation to Goto
+--   ======================
+
+-- | Transform a While AST to a Goto AST.
+toGoto :: Stat -> GotoAS.Stat
+toGoto ast = 
+    evalState (
+      evalStateT (toGoto' ast) (getStrictUnusedLabels [])
+    ) []
+
+-- The reason for the use of the state monad is that the transformation of a
+-- while loop to a "goto loop" needs previously unused labels and the list
+-- of unusued labels is carried along in the state.
+toGoto' :: Stat -> TransformState GotoAS.Stat
+toGoto' (Assign v aexp) = return $ GotoAS.Assign v aexp
+toGoto' (If bexp statThen statElse) = do
+    gStatThen <- toGoto' statThen
+    gStatElse <- case statElse of 
+                   Just s  -> do s' <- toGoto' s
+                                 return $ Just s'
+                   Nothing -> return Nothing
+    return $ GotoAS.If bexp gStatThen gStatElse
+toGoto' (While bexp stat) = do
+    m0 <- getUnusedLabel
+    m1 <- getUnusedLabel
+    s <- toGoto' stat
+    return $ GotoAS.Seq $
+        [ GotoAS.Label m0 $ GotoAS.If (BNegOp bexp) (GotoAS.Goto m1) Nothing
+        ] ++ flatten s ++ 
+        [ GotoAS.Goto m0
+        , GotoAS.Label m1 $ GotoAS.Assign "x0" (GotoAS.Var "x0")
+        ]
+  where flatten (GotoAS.Seq xs)              = xs
+        flatten x                            = [x]
+toGoto' (Seq stats) = liftM GotoAS.Seq $ mapM toGoto' stats

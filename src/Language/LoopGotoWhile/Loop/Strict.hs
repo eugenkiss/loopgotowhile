@@ -28,7 +28,7 @@ eval ast = WhileS.eval (WhileT.toStrict . toWhile . toExtended $ ast)
 -- | Given a string representation of a strict Loop program parse it and
 -- return either an error string or the AST.
 parse :: String -> Either String Program
-parse = mkStdParser parseStats spaces
+parse = mkStdParser parseStats () spaces
 
 
 -- * Parsing

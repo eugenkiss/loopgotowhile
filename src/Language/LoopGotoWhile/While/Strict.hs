@@ -30,7 +30,7 @@ eval ast args = runST $ do
 -- | Given a string representation of a strict While program parse it and
 -- return either an error string or the AST.
 parse :: String -> Either String Program
-parse = mkStdParser parseStats spaces
+parse = mkStdParser parseStats () spaces
 
 
 -- * Evaluation
@@ -52,7 +52,7 @@ eval' env w@(While n stat) = do
        else eval' env stat >> eval' env w
 eval' env (Seq stats) = mapM_ (eval' env) stats
 
--- TODO: Is there a better way to achieve this?
+-- TODO: Is there a better way to achieve this? Yes, see TODO
 nullEnv :: ST s (Env s)
 nullEnv = newSTRef =<< return . zip [0..] =<< lazyRefs
   where lazyRefs = do

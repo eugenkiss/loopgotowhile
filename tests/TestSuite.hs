@@ -8,6 +8,9 @@ import qualified Language.LoopGotoWhile.Loop.Transform.Tests
 import qualified Language.LoopGotoWhile.While.Strict.Tests
 import qualified Language.LoopGotoWhile.While.Extended.Tests
 import qualified Language.LoopGotoWhile.While.Transform.Tests
+import qualified Language.LoopGotoWhile.Goto.Strict.Tests
+import qualified Language.LoopGotoWhile.Goto.Extended.Tests
+import qualified Language.LoopGotoWhile.Goto.Transform.Tests
 
 main :: IO ()
 main = defaultMain
@@ -23,4 +26,10 @@ main = defaultMain
         Language.LoopGotoWhile.While.Extended.Tests.tests
     , testGroup "Language.LoopGotoWhile.While.Transform.Tests"
         Language.LoopGotoWhile.While.Transform.Tests.tests
+    , testGroup "Language.LoopGotoWhile.Goto.Strict.Tests"
+        Language.LoopGotoWhile.Goto.Strict.Tests.tests
+    , testGroup "Language.LoopGotoWhile.Goto.Extended.Tests"
+        Language.LoopGotoWhile.Goto.Extended.Tests.tests
+    , testGroup "Language.LoopGotoWhile.Goto.Transform.Tests"
+        Language.LoopGotoWhile.Goto.Transform.Tests.tests
     ]

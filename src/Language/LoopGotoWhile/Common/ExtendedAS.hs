@@ -7,8 +7,6 @@ module Language.LoopGotoWhile.Common.ExtendedAS
 
 type VarIdent = String
 
--- TODO: Function definition
-
 data AExp 
     = Var VarIdent
     | Const Integer

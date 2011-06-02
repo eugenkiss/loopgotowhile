@@ -1,7 +1,3 @@
--- TODO: 
--- - Test using functions
--- - Test 1 complicated program 
---     - nested loops, nested ifs, compund arith expr, function use, comments
 module Language.LoopGotoWhile.While.Extended.Tests (tests) where
 
 import Test.Framework
@@ -10,6 +6,7 @@ import Test.HUnit hiding (Test)
 
 import Language.LoopGotoWhile.Util
 import Language.LoopGotoWhile.While.Extended (parse, eval)
+
 
 tests :: [Test]
 tests = [ testCase "while/extended/parsing1" testParsing1
@@ -37,6 +34,7 @@ tests = [ testCase "while/extended/parsing1" testParsing1
         , testCase "while/extended/control4" testControl4
         , testCase "while/extended/control5" testControl5
         ]
+
 
 testParsing1 :: Assertion
 testParsing1 = assertBool "" $ isLeft $ runProgram [] $ " "

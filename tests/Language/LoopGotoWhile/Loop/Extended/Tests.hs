@@ -1,7 +1,3 @@
--- TODO: 
--- - Test using functions
--- - Test 1 complicated program 
---     - nested loops, nested ifs, compund arith expr, function use, comments
 module Language.LoopGotoWhile.Loop.Extended.Tests (tests) where
 
 import Test.Framework
@@ -10,6 +6,7 @@ import Test.HUnit hiding (Test)
 
 import Language.LoopGotoWhile.Util
 import Language.LoopGotoWhile.Loop.Extended (parse, eval)
+
 
 tests :: [Test]
 tests = [ testCase "loop/extended/parsing1" testParsing1

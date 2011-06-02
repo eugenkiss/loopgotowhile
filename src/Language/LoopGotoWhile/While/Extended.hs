@@ -31,7 +31,7 @@ eval ast args = Strict.eval (toStrict ast) args
 -- | Given a string representation of an extended While program parse it and
 -- return either an error string or the AST.
 parse :: String -> Either String Program
-parse = mkStdParser parseProgram whiteSpace
+parse = mkStdParser parseProgram () whiteSpace
 
 
 -- * Parsing

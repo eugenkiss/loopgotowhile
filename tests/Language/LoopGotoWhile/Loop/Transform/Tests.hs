@@ -1,13 +1,3 @@
--- |
---
--- Note: Some of the tests don't use a hand-written strict program to test the
--- transformations against but instead they test against a simplified extended
--- program that is automatically transformed to a strict program (e.g. most of
--- the control tests). The reason for this decision is that a strict program
--- would simply be too long and too convoluted to comprehend the applied
--- transformations. Nonetheless these tests are not useless as the more
--- primitive tests "ensure" that the transformations of the simplified extended
--- version to a strict version will be correct.
 module Language.LoopGotoWhile.Loop.Transform.Tests (tests) where
 
 import Test.Framework
@@ -23,40 +13,41 @@ import           Language.LoopGotoWhile.Loop.Transform (toStrict, toWhile)
 import qualified Language.LoopGotoWhile.While.Extended as WhileE
 import qualified Language.LoopGotoWhile.While.ExtendedAS as WhileEAS
 
-tests :: [Test]
-tests = [ testCase "loop/transform/extended-to-strict/renaming1" testStrictRenaming1
-        , testCase "loop/transform/extended-to-strict/renaming2" testStrictRenaming2
-        , testCase "loop/transform/extended-to-strict/renaming3" testStrictRenaming3
-        , testCase "loop/transform/extended-to-strict/assignment1" testStrictAssignment1
-        , testCase "loop/transform/extended-to-strict/assignment2" testStrictAssignment2
-        , testCase "loop/transform/extended-to-strict/arithmetic1" testStrictArithmetic1
-        , testCase "loop/transform/extended-to-strict/arithmetic2" testStrictArithmetic2
-        , testCase "loop/transform/extended-to-strict/arithmetic3" testStrictArithmetic3
-        , testCase "loop/transform/extended-to-strict/arithmetic4" testStrictArithmetic4
-        , testCase "loop/transform/extended-to-strict/arithmetic5" testStrictArithmetic5
-        , testCase "loop/transform/extended-to-strict/arithmetic6" testStrictArithmetic6
-        , testCase "loop/transform/extended-to-strict/arithmetic7" testStrictArithmetic7
-        , testCase "loop/transform/extended-to-strict/arithmetic8" testStrictArithmetic8
-        , testCase "loop/transform/extended-to-strict/control1" testStrictControl1
-        , testCase "loop/transform/extended-to-strict/control2" testStrictControl2
-        , testCase "loop/transform/extended-to-strict/control3" testStrictControl3
-        , testCase "loop/transform/extended-to-strict/control4" testStrictControl4
-        , testCase "loop/transform/extended-to-strict/control5" testStrictControl5
-        , testCase "loop/transform/extended-to-strict/control6" testStrictControl6
-        , testCase "loop/transform/extended-to-strict/control7" testStrictControl7
-        , testCase "loop/transform/extended-to-strict/control8" testStrictControl8
-        , testCase "loop/transform/extended-to-strict/control9" testStrictControl9
-        , testCase "loop/transform/extended-to-strict/control10" testStrictControl10
-        , testCase "loop/transform/extended-to-strict/control11" testStrictControl11
-        , testCase "loop/transform/extended-to-strict/control12" testStrictControl12
-        , testCase "loop/transform/extended-to-strict/control13" testStrictControl13
-        , testCase "loop/transform/extended-to-strict/control14" testStrictControl14
-        , testCase "loop/transform/extended-to-strict/control15" testStrictControl15
-        , testCase "loop/transform/extended-to-strict/control16" testStrictControl16
-        , testCase "loop/transform/extended-to-strict/control17" testStrictControl17
 
-        , testCase "loop/transform/while/control1" testWhileControl1
-        , testCase "loop/transform/while/control2" testWhileControl2
+tests :: [Test]
+tests = [ testCase "loop/transform/strict/renaming1" testStrictRenaming1
+        , testCase "loop/transform/strict/renaming2" testStrictRenaming2
+        , testCase "loop/transform/strict/renaming3" testStrictRenaming3
+        , testCase "loop/transform/strict/assignment1" testStrictAssignment1
+        , testCase "loop/transform/strict/assignment2" testStrictAssignment2
+        , testCase "loop/transform/strict/arithmetic1" testStrictArithmetic1
+        , testCase "loop/transform/strict/arithmetic2" testStrictArithmetic2
+        , testCase "loop/transform/strict/arithmetic3" testStrictArithmetic3
+        , testCase "loop/transform/strict/arithmetic4" testStrictArithmetic4
+        , testCase "loop/transform/strict/arithmetic5" testStrictArithmetic5
+        , testCase "loop/transform/strict/arithmetic6" testStrictArithmetic6
+        , testCase "loop/transform/strict/arithmetic7" testStrictArithmetic7
+        , testCase "loop/transform/strict/arithmetic8" testStrictArithmetic8
+        , testCase "loop/transform/strict/control1" testStrictControl1
+        , testCase "loop/transform/strict/control2" testStrictControl2
+        , testCase "loop/transform/strict/control3" testStrictControl3
+        , testCase "loop/transform/strict/control4" testStrictControl4
+        , testCase "loop/transform/strict/control5" testStrictControl5
+        , testCase "loop/transform/strict/control6" testStrictControl6
+        , testCase "loop/transform/strict/control7" testStrictControl7
+        , testCase "loop/transform/strict/control8" testStrictControl8
+        , testCase "loop/transform/strict/control9" testStrictControl9
+        , testCase "loop/transform/strict/control10" testStrictControl10
+        , testCase "loop/transform/strict/control11" testStrictControl11
+        , testCase "loop/transform/strict/control12" testStrictControl12
+        , testCase "loop/transform/strict/control13" testStrictControl13
+        , testCase "loop/transform/strict/control14" testStrictControl14
+        , testCase "loop/transform/strict/control15" testStrictControl15
+        , testCase "loop/transform/strict/control16" testStrictControl16
+        , testCase "loop/transform/strict/control17" testStrictControl17
+
+        , testCase "loop/transform/while/control1" testToWhile1
+        , testCase "loop/transform/while/control2" testToWhile2
         ]
 
 testStrictRenaming1 = toStrict (parseE e) @?= parseS s
@@ -380,10 +371,8 @@ testStrictControl17 = toStrict (parseE e1) @?= toStrict (parseE e2)
              "  x1 := x1 + 0"                          ++
              "END"                                   
 
--- TODO: test functions
 
-
-testWhileControl1 = toWhile (parseE e1) @?= parseWhileE e2
+testToWhile1 = toWhile (parseE e1) @?= parseWhileE e2
   where e1 = "LOOP x1 DO"     ++
              "  x0 := x0 + 0" ++
              "END"
@@ -393,7 +382,7 @@ testWhileControl1 = toWhile (parseE e1) @?= parseWhileE e2
              "  x0 := x0 + 0"   ++
              "END"
 
-testWhileControl2 = toWhile (parseE e1) @?= parseWhileE e2
+testToWhile2 = toWhile (parseE e1) @?= parseWhileE e2
   where e1 = "LOOP x1 + 1 DO" ++
              "  x0 := x0 + 0" ++
              "END"

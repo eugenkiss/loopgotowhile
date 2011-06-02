@@ -7,6 +7,7 @@ import Test.HUnit hiding (Test)
 import Language.LoopGotoWhile.Util
 import Language.LoopGotoWhile.Loop.Strict (parse, eval)
 
+
 tests :: [Test]
 tests = [ testCase "loop/strict/assignment1" testAssignment1
         , testCase "loop/strict/assignment2" testAssignment2
@@ -29,7 +30,6 @@ tests = [ testCase "loop/strict/assignment1" testAssignment1
         , testCase "loop/strict/parsing10" testParsing10
         ]
 
--- TODO: Test a complex program read from file
 
 testAssignment1 :: Assertion
 testAssignment1 

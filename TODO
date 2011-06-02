@@ -1,44 +1,121 @@
-- create goto language with code duplication and copy all tests
-    - create transformation gotoe -> gotos
-    - create transformation gotos -> gotoe
-    - create transformations goto <-> while
-    (- create transformation loop -> while -> goto)
-    - Use strict while as evaluation language 
-    - Pretty printer 
+- commit
+- Rename Common to Shared and put Util there
+- extract renameAexp renameBexp to shared
+- extract getVarNamesAexp getVarNamesBexp to shared
+- extract arithparser, boolparser to shared (extended)
+- try to extract parseVar, parseConst to shared even from strict
+- disallow the empty program!
 
-- Improve evaluator so that instead of creating a lazy infinite list of STRefs
-  just initialize STRef with 0 when it is first used, so that it doesn't take
-  so much time to create the list from 0 till n, where n is a big number
-  (e.g. x999999999999999 takes too long)
-
-- Create cltools
+- Go through Todos and fix those that are possible
 - Remove the warnings (by improving the code)
-- Go through Todos
 - run HLint
-- Create try in your browser website
-- create readme / improve cabal file
+- Add better comments
+    - e.g. header of each file (read again haddock)
+- reorder parsers / functions so that more important are always at top of file
+- remove unused imports
+- Create provisory try in your browser website (export lib in cabal/code)
+- Create cltools
+    - Options
+        - -p, --prettyprint 
+        - -s, --strict
+        - -t [loop,goto,while], --transform [loop,goto,while] (list only those that are possible)
+        - -o, --output (default: stdout)
+    - extract common functionality to shared
+    - create executables in cabal
+- create readme / improve cabal file (explicit versions)
+    - General Introduction without header
+    - Try it: Link to server
+    - If install: Explain command line tools breifly
+    - About
+        - http://en.wikipedia.org/wiki/BlooP_and_FlooP ?
+        - GTI
+        - talk about that there is each extended and strict version
+          and it is possible to transform source code loop -> goto <-> while <- loop
+          (every loop program is total, goto/while not necessarily). The
+          transformation from one language to another is from GTI. Most of
+          the transformations from extended to strict is from me and not optimized
+          at all. Give example from loope program that is transformed to gotos
+          program (x0 := x1 / x2) :).
+          Some of the exercises are from GTI.
+    - Language Specifications from GTI Skript
+        - You can only implement functions from N -> N
+                - Loop
+                    - syntax (grammar)
+                    - semantics
+                    - extended
+                - While
+                    - syntax (grammar)
+                    - semantics
+                    - extended (while head can have bexp, rest like loope)
+                - Goto
+                    - syntax (grammar)
+                    - semantics
+                    - extended (optional labels, can be named like identifiers,
+                      HALT can come inside if body, rest like loope)
+    - Exercises
+        - give one example solution
+    - Code Design (how the code is designed)
+                - if there was easy way to spit javascript from haskell rather
+                  that instead of server based program
+                - only one evaluation language...
+                - ...
+                - I guess much can be improved, if you have suggestion come at me, brah
+        - Tests
+            - Put the note from tests here (transformation strict...)
+                
+                -- Note: Some of the tests don't use a hand-written strict program to test the
+                -- transformations against but instead they test against a simplified extended
+                -- program that is automatically transformed to a strict program (e.g. most of
+                -- the control tests). The reason for this decision is that a strict program
+                -- would simply be too long and too convoluted to comprehend the applied
+                -- transformations. Nonetheless these tests are not useless as the more
+                -- primitive tests "ensure" that the transformations of the simplified extended
+                -- version to a strict version will be correct.
+
     - Future -> to Readme
         - Optimizations
             - remove redundancy (e.g. remove "x0 := x0 + 0")
             - other optimizations?
         - Function Definitions
+        - Include Statement
+        - Code Improvements
+            - remove code duplication
+            - some parts are quite ugly
+            - Customization of Error Messages in Parsec (2.*) laesst zu Wuenschen
+              uebrig.
 - put on github
-- ask Vollmer (ok with it, credit, using exercises...)
+- ask Vollmer (ok with it, credit, using exercises/text from skript, is it
+  correct that bloop floop inspired?...)
 
 - How to improve code?
     - how to remove code duplication?
         - how to better extract common functionality?
             - expression problem? open datatypes?
-    - ask questions from todos
+    - ask questions from todos/test
+    - should this be put on hackage?
+    - Is there a reason in favor of Parsec3 instead of 2?
     - Provided Parsec examples
     - Other examples from internet
     - Other parser libs?
         - http://projects.haskell.org/grammar-combinators/
         - Alex, Happy
-    - What advanced type features / language extensions would improve the code?
+    - Make languages instances of Foldable for e.g. easier renaming of vars?
+    - What advanced type features / language extensions / libraries could improve the code?
       Mainly remove code duplication by using abstractions?
         - View Patterns?
         - Type Families?
+        - uniplate?
+    - why the hell do I even keep the s around for pretty printing? delte it and
+      see if it makes any difference
+      also, there is no reason for the helper function for pretty printing goto
+    - Improve evaluator so that instead of creating a lazy infinite list of STRefs
+      just initialize STRef with 0 when it is first used, so that it doesn't take
+      so much time to create the list from 0 till n, where n is a big number
+      (e.g. x999999999999999 takes too long) (Maybe Map)
+    - think about type class to get and change var names?
+    - unify naming convetions (e.g. if qualifed import AS than GotoAS not Goto)
+    - improve pretty printers
+        - e.g. dismiss superfluous parentheses
 - http://sigusr2.net/2011/Apr/18/parser-combinators-made-simple.html
 - http://book.realworldhaskell.org/read/using-parsec.html
 - http://bloggingmath.wordpress.com/2010/01/20/writing-a-compiler-in-haskell-compiler-series-part-i/
@@ -46,44 +123,37 @@
 - http://hackage.haskell.org/packages/archive/pkg-list.html#cat:language
 - http://www.cs.uu.nl/wiki/UHC/WebHome
 
-- Function definition for extended with lexical scope + nested functions
+- Function definition for extended with "lexical" scope + nested functions
+    - look at the parsec examples to get some ideas but basically just a constructor Func FIdent Stat
     - rather macros than real functions that are like nested programs
       where parameters are x1,... and output is x0
-    - spricht etwas gegen verschachtelte funktionsdefinitionen?
+    - spricht etwas gegen verschachtelte funktionsdefinitionen? -> no
     - need not only keep vars as state but also function definitions
       and function definitions can be arbitrarily nested so keep tree of
-      function definitions around
+      function definitions
 - Think about import ("include" fits better) statement
     - implicitly include "prelude"
     - if functions are supported use function definitions instead of manually
       translating * + etc. e.g. just rewrite x1 * x2 to mul(x1,x2) and mul
       is implicitly included from the prelude
-- reuse strict tests for extended versions
+- reduce tests size
+    - either delete or add everywhere type Assertion
+    - reuse strict tests for extended versions
+    - reuse extended arithmetic tests that do not use loop constructs
+    - reuse/create transformation tests from xE to yE that do not use looping
+      constructs (should become the same)
+    - reduce transformation to strict tests for goto and while to only specific
+      things if it has been possible to factor out common strict transform. code
 
-- improve code documentation
 - hackage?
 
-- create documentation
-    - introduction (http://en.wikipedia.org/wiki/BlooP_and_FlooP, GTI)
-    - code design/rationale
-        - Data Types in own file because of mutual recurions import
-        - Tests of whiel and goto are smaller because if transforms to loop
-          correct, no need to test
-        - abstract has common features
-        - each language has strict and extended version
-        - ...
-    - syntax
-        - grammer
-    - semantics
-    - examples
-    - exercises
-    - try in your browser
+- create projects loopgotowhile-server, loopgotowhile-site
 
 - Think about trying in browser and how to prevent overloading of server
     - https://github.com/chrisdone/haskell-json
     - https://github.com/chrisdone/tryhaskell
     - http://chrisdone.com/posts/2010-04-05-haskell-json-service-tryhaskell.html
     - http://codemirror.net/ highlighted javascript
-
-- look at how others write code
-    - http://donsbot.wordpress.com/software/
+    - this layout http://taitems.github.com/Front-End-Development-Guidelines/
+      everything one html file
+        copy content from readme file

@@ -16,8 +16,6 @@ type Program = Stat
 
 type VarIdent = String
 
--- TODO: Function definition
-
 data Stat
     = Assign VarIdent AExp
     | While BExp Stat

@@ -34,10 +34,11 @@ Executable test
         base >= 4.0,
         haskell98,
         mtl,
+        array,
+        parsec,
         test-framework,
         test-framework-hunit, 
-        HUnit,
-        parsec
+        HUnit
     
 
 
