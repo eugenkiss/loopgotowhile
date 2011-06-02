@@ -1,23 +1,19 @@
+-- | Parsing and evaluation of extended Loop.
 module Language.LoopGotoWhile.Loop.Extended
     ( eval
     , parse
     , prettyPrint
     ) where
 
-import Control.Monad
-import Control.Monad.State
-import Data.Char (isDigit)
-import Data.List (partition, nub, (\\), union)
-
-import Text.ParserCombinators.Parsec hiding (State, parse)
-import Text.ParserCombinators.Parsec.Expr
 import qualified Text.ParserCombinators.Parsec.Token as P
+import Text.ParserCombinators.Parsec hiding (State, parse)
 import Text.ParserCombinators.Parsec.Language (javaStyle)
 
-import Language.LoopGotoWhile.Shared.Util (mkStdParser)
-import Language.LoopGotoWhile.Loop.ExtendedAS
 import qualified Language.LoopGotoWhile.Loop.Strict as Strict
+import Language.LoopGotoWhile.Loop.ExtendedAS
 import Language.LoopGotoWhile.Loop.Transform (toStrict)
+import Language.LoopGotoWhile.Shared.Util (mkStdParser)
+import Language.LoopGotoWhile.Shared.Extended
 
 
 -- * Main Functions
@@ -86,98 +82,28 @@ parseLoopStat = do
    reserved "END"
    return $ Loop a body
 
-parseBoolExp :: Parser BExp
-parseBoolExp = buildExpressionParser boolOperators parseSimpleBool
 
-boolOperators =
-    [ [ op "&&" AssocRight ]
-    , [ op "||" AssocRight ] 
-    ]
-  where op name assoc = Infix (do reservedOp name
-                                  return $ \x y -> BOp name x y 
-                                  ) assoc
-
-parseSimpleBool = choice 
-                [ try parseRelExp
-                , parens parseBoolExp
-                , parseNegBool
-                ]
-
-parseNegBool :: Parser BExp
-parseNegBool = do
-    reservedOp "!"
-    whiteSpace
-    string "("
-    whiteSpace
-    bexp <- parseBoolExp
-    whiteSpace
-    string ")"
-    whiteSpace
-    return $ BNegOp bexp
-
-parseRelExp :: Parser BExp
-parseRelExp = do 
-    arg1 <- parseAritExp
-    op <- choice [ symbol "="
-                 , try (symbol "!=")
-                 , try (symbol "<=")
-                 , symbol "<"
-                 , try (symbol ">=")
-                 , symbol ">"
-                 ]
-    arg2 <- parseAritExp
-    return $ RelOp op arg1 arg2
-    
-parseAritExp :: Parser AExp
-parseAritExp = buildExpressionParser aritOperators parseSimpleArit
-
-aritOperators =
-    [ [ op "^" AssocRight ]
-    , [ op "*" AssocLeft, op "/" AssocLeft ]
-    , [ op "+" AssocLeft, op "-" AssocLeft ]
-    , [ op "%" AssocRight ] 
-    ]
-  where op name assoc = Infix (do reservedOp name
-                                  return $ \x y -> AOp name x y 
-                                  ) assoc
-
-parseSimpleArit :: Parser AExp
-parseSimpleArit = choice 
-                [ parseConst
-                , parens parseAritExp
-                , parseVar
-                ]
-
-parseConst :: Parser AExp
-parseConst = liftM Const (integer <?> "constant")
-
-parseVar :: Parser AExp
-parseVar = liftM Var (identifier <?> "identifier")
-
-
--- ** Lexing
---    ------
+-- * Lexing
+--   ======
 
 -- TODO: Type annotations
 
-lexer     = P.makeTokenParser loopDef
+lexer      = P.makeTokenParser loopDef
 
-loopDef   = javaStyle
-          { P.reservedNames   = [ "LOOP", "DO", "END", "IF", "THEN", "ELSE" ]
-          , P.reservedOpNames = [ ":=" 
-                                , "+", "-", "*", "/", "^", "%"
-                                , "=", "!=", "<", "<=", ">", ">=" 
-                                , "!", "&&", "||"
-                                ]
-          , P.opLetter        = oneOf (concat (P.reservedOpNames loopDef))
-          , P.caseSensitive   = True
-          }
+loopDef    = javaStyle
+           { P.reservedNames   = [ "LOOP", "DO", "END", "IF", "THEN", "ELSE" ]
+           , P.reservedOpNames = [ ":=" 
+                                 , "+", "-", "*", "/", "^", "%"
+                                 , "=", "!=", "<", "<=", ">", ">=" 
+                                 , "!", "&&", "||"
+                                 ]
+           , P.opLetter        = oneOf (concat (P.reservedOpNames loopDef))
+           , P.caseSensitive   = True
+           }
 
-parens     = P.parens lexer    
 semiSep1   = P.semiSep1 lexer    
 whiteSpace = P.whiteSpace lexer    
 symbol     = P.symbol lexer    
 identifier = P.identifier lexer    
 reserved   = P.reserved lexer    
 reservedOp = P.reservedOp lexer
-integer    = P.integer lexer    
