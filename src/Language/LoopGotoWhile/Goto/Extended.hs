@@ -15,7 +15,7 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language (javaStyle)
 import Text.ParserCombinators.Parsec.Error
 
-import Language.LoopGotoWhile.Util (mkStdParser)
+import Language.LoopGotoWhile.Shared.Util (mkStdParser)
 import Language.LoopGotoWhile.Goto.ExtendedAS
 import qualified Language.LoopGotoWhile.Goto.Strict as Strict
 import Language.LoopGotoWhile.Goto.Transform (toStrict)

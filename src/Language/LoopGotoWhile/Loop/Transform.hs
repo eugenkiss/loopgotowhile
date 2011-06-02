@@ -10,7 +10,7 @@ import Control.Monad.State
 import Data.Char (isDigit)
 import Data.List (partition, nub, (\\), union)
 
-import Language.LoopGotoWhile.Common.Transform (getUnusedVar, getStrictUnusedVars)
+import Language.LoopGotoWhile.Shared.Transform (getUnusedVar, getStrictUnusedVars)
 import Language.LoopGotoWhile.Loop.ExtendedAS
 import qualified Language.LoopGotoWhile.Loop.StrictAS as StrictAS
 import qualified Language.LoopGotoWhile.While.ExtendedAS as While

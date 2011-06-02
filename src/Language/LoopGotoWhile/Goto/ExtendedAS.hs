@@ -10,7 +10,7 @@ module Language.LoopGotoWhile.Goto.ExtendedAS
 
 import Data.List (intercalate)
 
-import Language.LoopGotoWhile.Common.ExtendedAS (VarIdent, AExp(..), BExp(..))
+import Language.LoopGotoWhile.Shared.ExtendedAS (VarIdent, AExp(..), BExp(..))
 
 
 type Program = Stat

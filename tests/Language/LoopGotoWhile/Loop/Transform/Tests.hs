@@ -4,7 +4,7 @@ import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test)
 
-import           Language.LoopGotoWhile.Util
+import           Language.LoopGotoWhile.Shared.Util
 import qualified Language.LoopGotoWhile.Loop.Strict as Strict
 import qualified Language.LoopGotoWhile.Loop.StrictAS as StrictAS
 import           Language.LoopGotoWhile.Loop.ExtendedAS (Stat)

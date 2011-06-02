@@ -15,7 +15,7 @@ import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language (javaStyle)
 import qualified Text.ParserCombinators.Parsec.Token as P
 
-import Language.LoopGotoWhile.Common.Transform (getUnusedVar, getStrictUnusedVars)
+import Language.LoopGotoWhile.Shared.Transform (getUnusedVar, getStrictUnusedVars)
 import Language.LoopGotoWhile.While.ExtendedAS
 import qualified Language.LoopGotoWhile.While.StrictAS as StrictAS
 import qualified Language.LoopGotoWhile.Goto.ExtendedAS as GotoAS

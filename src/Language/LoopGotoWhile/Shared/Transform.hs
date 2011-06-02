@@ -1,4 +1,4 @@
-module Language.LoopGotoWhile.Common.Transform 
+module Language.LoopGotoWhile.Shared.Transform 
     ( getUnusedVar
     , getStrictUnusedVars
     ) where
@@ -7,7 +7,7 @@ import Control.Monad
 import Control.Monad.State
 import Data.List ((\\))
 
-import Language.LoopGotoWhile.Common.ExtendedAS
+import Language.LoopGotoWhile.Shared.ExtendedAS
 
 
 -- * General Helper Functions for Transformation to a Strict Subset

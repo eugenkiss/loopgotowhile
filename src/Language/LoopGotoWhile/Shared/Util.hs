@@ -1,4 +1,5 @@
-module Language.LoopGotoWhile.Util
+-- | General utility functions for parsing/evaluation.
+module Language.LoopGotoWhile.Shared.Util
     ( evalProgram
     , evalProgram'
     , mkStdParser
@@ -6,23 +7,33 @@ module Language.LoopGotoWhile.Util
 
 import Text.ParserCombinators.Parsec hiding (Parser)
 
+
 type Parser a = String -> Either String a
 
 type Evaluator a = a -> [Integer] -> Integer
 
+-- | Given a parser and evaluator of type 'a', a string representation of
+-- a program and a list of the values for 'x1,x2,...' try to evaluate the
+-- program. If succesful return the value stored in 'x0' otherwise return an
+-- error message.
 evalProgram :: Parser a -> Evaluator a -> String -> [Integer] -> Either String Integer
 evalProgram parser evaluator code args = 
     case parser code of
       Left err  -> Left err
       Right ast -> Right $ evaluator ast args
       
+-- | A variation of 'evalProgram'. Instead of returning an error message the
+-- value '-1' is returned. Since '-1' is not an allowed value for any variable
+-- it represents an error. By using this function some "non-critical" functions
+-- are easier to write because they do not need to pattern match against an
+-- Either.
 evalProgram' :: Parser a -> Evaluator a -> String -> [Integer] -> Integer
 evalProgram' parser evaluator code args = 
     case evalProgram parser evaluator code args of
       Left _    -> -1
       Right res -> res
 
--- | Given a parser 'p' of program 'a', an initial stat 'st' and an associated
+-- | Given a parser 'p' of program 'a', an initial state 'st' and an associated
 -- "whiteSpace"-parser 'ws', i.e. a parser that skips whitespace, newlines,
 -- comments etc., make a "standard" parser that receives a string of a program
 -- and returns either an AST of type 'a' or an error message. The parser skips

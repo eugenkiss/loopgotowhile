@@ -22,7 +22,7 @@ import Text.ParserCombinators.Parsec.Language (javaStyle)
 import qualified Text.ParserCombinators.Parsec.Token as P
 
 import Language.LoopGotoWhile.Goto.ExtendedAS
-import qualified Language.LoopGotoWhile.Common.Transform as T
+import qualified Language.LoopGotoWhile.Shared.Transform as T
 import qualified Language.LoopGotoWhile.Goto.StrictAS as StrictAS
 import qualified Language.LoopGotoWhile.While.ExtendedAS as WhileAS
 

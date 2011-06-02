@@ -1,4 +1,4 @@
-module Language.LoopGotoWhile.Common.ExtendedAS
+module Language.LoopGotoWhile.Shared.ExtendedAS
     ( VarIdent
     , AExp (..) 
     , BExp (..) 

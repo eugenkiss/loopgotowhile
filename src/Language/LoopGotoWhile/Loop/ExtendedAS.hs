@@ -9,7 +9,7 @@ module Language.LoopGotoWhile.Loop.ExtendedAS
 
 import Data.List (intercalate)
 
-import Language.LoopGotoWhile.Common.ExtendedAS (AExp(..), BExp(..))
+import Language.LoopGotoWhile.Shared.ExtendedAS (AExp(..), BExp(..))
 
 
 type Program = Stat

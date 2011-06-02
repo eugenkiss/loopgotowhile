@@ -10,7 +10,7 @@ import Data.STRef
 import Data.Maybe (fromJust)
 import Text.ParserCombinators.Parsec hiding (parse)
 
-import Language.LoopGotoWhile.Util (mkStdParser)
+import Language.LoopGotoWhile.Shared.Util (mkStdParser)
 import Language.LoopGotoWhile.Goto.StrictAS
 import Language.LoopGotoWhile.Goto.Transform (toExtended, toWhile)
 import qualified Language.LoopGotoWhile.While.Strict as WhileS

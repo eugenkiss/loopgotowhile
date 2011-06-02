@@ -1,13 +1,11 @@
-- commit
-- Rename Common to Shared and put Util there
 - extract renameAexp renameBexp to shared
 - extract getVarNamesAexp getVarNamesBexp to shared
 - extract arithparser, boolparser to shared (extended)
 - try to extract parseVar, parseConst to shared even from strict
 - disallow the empty program!
 
-- Go through Todos and fix those that are possible
 - Remove the warnings (by improving the code)
+- Go through Todos and fix those that are possible
 - run HLint
 - Add better comments
     - e.g. header of each file (read again haddock)
