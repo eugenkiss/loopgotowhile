@@ -1,3 +1,4 @@
+-- | General helper functions for transformation to a strict subset.
 module Language.LoopGotoWhile.Shared.Transform 
     ( getUnusedVar
     , getStrictUnusedVars
@@ -14,9 +15,6 @@ import Data.Char (isDigit)
 
 import Language.LoopGotoWhile.Shared.ExtendedAS
 
-
--- * General Helper Functions for Transformation to a Strict Subset
---   ==============================================================
 
 -- | Return an unused variable name and remove it from the list of unused
 -- variable names (the state).

@@ -1,7 +1,7 @@
 -- | General utility functions for parsing/evaluation.
 module Language.LoopGotoWhile.Shared.Util
-    ( evalProgram
-    , evalProgram'
+    ( mkStdRunner
+    , mkStdRunner'
     , mkStdParser
     ) where
 
@@ -16,20 +16,20 @@ type Evaluator a = a -> [Integer] -> Integer
 -- a program and a list of the values for 'x1,x2,...' try to evaluate the
 -- program. If succesful return the value stored in 'x0' otherwise return an
 -- error message.
-evalProgram :: Parser a -> Evaluator a -> String -> [Integer] -> Either String Integer
-evalProgram parser evaluator code args = 
+mkStdRunner :: Parser a -> Evaluator a -> String -> [Integer] -> Either String Integer
+mkStdRunner parser evaluator = \code args -> 
     case parser code of
       Left err  -> Left err
       Right ast -> Right $ evaluator ast args
       
--- | A variation of 'evalProgram'. Instead of returning an error message the
+-- | A variation of 'mkStdRunner'. Instead of returning an error message the
 -- value '-1' is returned. Since '-1' is not an allowed value for any variable
 -- it represents an error. By using this function some "non-critical" functions
 -- are easier to write because they do not need to pattern match against an
 -- Either.
-evalProgram' :: Parser a -> Evaluator a -> String -> [Integer] -> Integer
-evalProgram' parser evaluator code args = 
-    case evalProgram parser evaluator code args of
+mkStdRunner' :: Parser a -> Evaluator a -> String -> [Integer] -> Integer
+mkStdRunner' parser evaluator = \code args -> 
+    case (mkStdRunner parser evaluator) code args of
       Left _    -> -1
       Right res -> res
 

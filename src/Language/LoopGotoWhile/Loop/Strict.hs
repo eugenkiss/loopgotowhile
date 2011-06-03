@@ -1,6 +1,7 @@
 -- | Parsing and evaluation of strict Loop.
 module Language.LoopGotoWhile.Loop.Strict
-    ( eval
+    ( run
+    , eval
     , parse
     , prettyPrint
     ) where
@@ -9,15 +10,21 @@ import Control.Monad
 
 import Text.ParserCombinators.Parsec hiding (parse)
 
-import qualified Language.LoopGotoWhile.While.Strict as WhileS
-import qualified Language.LoopGotoWhile.While.Transform as WhileT
+import Language.LoopGotoWhile.Shared.Util (mkStdParser, mkStdRunner)
 import Language.LoopGotoWhile.Loop.StrictAS
 import Language.LoopGotoWhile.Loop.Transform (toExtended, toWhile)
-import Language.LoopGotoWhile.Shared.Util (mkStdParser)
+import qualified Language.LoopGotoWhile.While.Strict as WhileS
+import qualified Language.LoopGotoWhile.While.Transform as WhileT
 
 
 -- * Main Functions
 --   ==============
+
+-- | Given a string representation of a strict Loop program and a list of
+-- arguments parse & evaluate the program and return either an error string or
+-- the value of 'x0'.
+run :: String -> [Integer] -> Either String Integer
+run = mkStdRunner parse eval
 
 -- | Given a strict Loop AST and a list of arguments evaluate the program
 -- and return the value of 'x0'.

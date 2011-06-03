@@ -1,6 +1,7 @@
 -- | Parsing and evaluation of strict While.
 module Language.LoopGotoWhile.While.Strict 
-    ( eval
+    ( run
+    , eval
     , parse
     , prettyPrint
     ) where
@@ -12,12 +13,18 @@ import Data.Maybe (fromJust)
 
 import Text.ParserCombinators.Parsec hiding (parse)
 
-import Language.LoopGotoWhile.Shared.Util (mkStdParser)
+import Language.LoopGotoWhile.Shared.Util (mkStdParser, mkStdRunner)
 import Language.LoopGotoWhile.While.StrictAS
 
 
 -- * Main Functions
 --   ==============
+
+-- | Given a string representation of a strict While program and a list of
+-- arguments parse & evaluate the program and return either an error string or
+-- the value of 'x0'.
+run :: String -> [Integer] -> Either String Integer
+run = mkStdRunner parse eval
 
 -- | Given a strict While AST and a list of arguments evaluate the program
 -- and return the value of 'x0'.

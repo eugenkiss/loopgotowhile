@@ -182,10 +182,10 @@ testControl5 = runProgram' [10, 1] p @?= 42
 -- Helper
 
 runProgram :: [Integer] -> String -> Either String Integer
-runProgram = flip $ evalProgram parse eval
+runProgram = flip $ mkStdRunner parse eval
 
 runProgram' :: [Integer] -> String -> Integer
-runProgram' = flip $ evalProgram' parse eval
+runProgram' = flip $ mkStdRunner' parse eval
 
 isLeft :: Either a b -> Bool
 isLeft (Left _) = True

@@ -1,7 +1,8 @@
 {-# LANGUAGE RankNTypes #-}
 -- | Parsing and evaluation of extended While.
 module Language.LoopGotoWhile.While.Extended
-    ( eval
+    ( run
+    , eval
     , parse
     , prettyPrint
     ) where
@@ -13,12 +14,18 @@ import Text.ParserCombinators.Parsec.Language (javaStyle)
 import qualified Language.LoopGotoWhile.While.Strict as Strict
 import Language.LoopGotoWhile.While.ExtendedAS
 import Language.LoopGotoWhile.While.Transform (toStrict)
-import Language.LoopGotoWhile.Shared.Util (mkStdParser)
+import Language.LoopGotoWhile.Shared.Util (mkStdParser, mkStdRunner)
 import Language.LoopGotoWhile.Shared.Extended 
 
 
 -- * Main Functions
 --   ==============
+
+-- | Given a string representation of an extended While program and a list of
+-- arguments parse & evaluate the program and return either an error string or
+-- the value of 'x0'.
+run :: String -> [Integer] -> Either String Integer
+run = mkStdRunner parse eval
 
 -- | Given an extended While AST and a list of arguments evaluate the program
 -- and return the value of 'x0'.
