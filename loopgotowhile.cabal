@@ -1,36 +1,68 @@
-Name:                loopgotowhile
-Version:             0.1
-Synopsis:            Interpreters for three simple programming languages created for self-educational purposes
-Homepage:            https://github.com/eugenkiss/loopgotowhile-hs
-License:             BSD3
-License-file:        LICENSE
-Author:              Eugen Kiss
-Maintainer:          eugen@eugenkiss.com
-Stability:           Experimental
-Category:            Language
-Build-type:          Simple
-Cabal-version:       >=1.2
-Description:         TODO
+Name:        loopgotowhile
+Version:     0.1
+Synopsis:    Interpreters for three simple programming languages created for 
+             self-educational purposes
+Description: TODO
 
-Extra-source-files: 
-    README.mkd
+Homepage:     https://github.com/eugenkiss/loopgotowhile
+License:      BSD3
+License-file: LICENSE
+Author:       Eugen Kiss (eugen@eugenkiss.com)
+Maintainer:   Eugen Kiss (eugen@eugenkiss.com)
+Stability:    Experimental
+Category:     Language
 
-source-repository head
-    type:     git
-    location: https://github.com/eugenkiss/loopgotowhile-hs
-    branch:   master
+Cabal-version:      >=1.2
+Build-type:         Simple
+Extra-source-files: README.mkd
 
-flag test
-    description: Build the tests
-    default:     False
+Source-Repository head
+    Type:     git
+    Location: https://github.com/eugenkiss/loopgotowhile
+    Branch:   master
+
+Flag test
+    Description: Build the tests
+    Default:     False
+
+Library
+    Ghc-Options:    -Wall
+    Hs-Source-Dirs: src
+    Build-Depends:   
+        base >= 4.0,
+        haskell98,
+        mtl,
+        array,
+        parsec
+    Exposed-Modules:
+        Language.LoopGotoWhile.Loop.Strict
+        Language.LoopGotoWhile.Loop.StrictAS
+        Language.LoopGotoWhile.Loop.Extended
+        Language.LoopGotoWhile.Loop.ExtendedAS
+        Language.LoopGotoWhile.Loop.Transform
+        Language.LoopGotoWhile.Goto.Strict
+        Language.LoopGotoWhile.Goto.StrictAS
+        Language.LoopGotoWhile.Goto.Extended
+        Language.LoopGotoWhile.Goto.ExtendedAS
+        Language.LoopGotoWhile.Goto.Transform
+        Language.LoopGotoWhile.While.Strict
+        Language.LoopGotoWhile.While.StrictAS
+        Language.LoopGotoWhile.While.Extended
+        Language.LoopGotoWhile.While.ExtendedAS
+        Language.LoopGotoWhile.While.Transform
+    Other-Modules:
+        Language.LoopGotoWhile.Shared.Util
+        Language.LoopGotoWhile.Shared.Extended
+        Language.LoopGotoWhile.Shared.ExtendedAS
+        Language.LoopGotoWhile.Shared.Transform
 
 Executable test
-    hs-source-dirs:  src, tests
-    main-is:         TestSuite.hs
-    ghc-options:     -Wall
+    Ghc-Options:    -Wall
+    Hs-Source-Dirs: src, tests
+    Main-Is:        TestSuite.hs
     if !flag(test)
-        buildable:     False
-    build-depends:   
+        Buildable:  False
+    Build-Depends:   
         base >= 4.0,
         haskell98,
         mtl,
@@ -40,8 +72,6 @@ Executable test
         test-framework-hunit, 
         HUnit
     
-
-
 --TODO: Executable loop
   
 --TODO: Executable goto
