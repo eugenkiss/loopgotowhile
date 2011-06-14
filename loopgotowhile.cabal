@@ -30,10 +30,10 @@ Library
     Hs-Source-Dirs: src
     Build-Depends:   
         base >= 4.0,
-        haskell98,
-        mtl,
-        array,
-        parsec
+        haskell98 == 1.1.*,
+        mtl == 2.0.*,
+        array == 0.3.*,
+        parsec >= 2.1.0 && <= 3.1.1
     Exposed-Modules:
         Language.LoopGotoWhile.Loop.Strict
         Language.LoopGotoWhile.Loop.StrictAS
@@ -64,13 +64,13 @@ Executable test
         Buildable:  False
     Build-Depends:   
         base >= 4.0,
-        haskell98,
-        mtl,
-        array,
-        parsec,
-        test-framework,
-        test-framework-hunit, 
-        HUnit
+        haskell98 == 1.1.*,
+        mtl == 2.0.*,
+        array == 0.3.*,
+        parsec >= 2.1.0 && <= 3.1.1,
+        test-framework == 0.4.*,
+        test-framework-hunit == 0.2.*, 
+        HUnit == 1.2.*
     
 --TODO: Executable loop
   
