@@ -2,9 +2,25 @@ Name:        loopgotowhile
 Version:     0.1
 Synopsis:    Interpreters for three simple programming languages created for 
              self-educational purposes
-Description: TODO
+Description: 
 
-Homepage:     https://github.com/eugenkiss/loopgotowhile
+  This project contains interpreters for the programming languages *Loop, Goto
+  & While* that are based on Prof Dr. Heribert Vollmer's
+  (<http://www.thi.uni-hannover.de/en/homepage/people/heribert-vollmer/>)
+  lecture notes for his introductory course in theoretical computer science.
+  They are modeled to feel similar to common imperative programming languages
+  but they are delibaretly greatly simplified. Furthermore, when possible,
+  functions to transform source code from one language to another are provided,
+  too.
+  .
+  The homepage has a [live web evaluation service][evalservice] where you can
+  write some code and have it either evaluated or transformed. Additionally, to
+  keep yourself entertained, you can find some exercises on that website, too.
+  .
+  The specifications for the languages can be either found in the README or
+  on this project's homepage.
+
+Homepage:     http://loopgotowhile.eugenkiss.com/
 License:      BSD3
 License-file: LICENSE
 Author:       Eugen Kiss (eugen@eugenkiss.com)

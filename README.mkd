@@ -1,50 +1,150 @@
+This project contains interpreters for the programming languages *Loop, Goto
+& While* that are based on [Prof Dr. Heribert Vollmer][vollmer]'s lecture notes
+for his introductory course in theoretical computer science. They are modeled
+to feel similar to common imperative programming languages but they are
+delibaretly greatly simplified. Furthermore, when possible, functions to
+transform source code from one language to another are provided, too.
+
+  [vollmer]: http://www.thi.uni-hannover.de/en/homepage/people/heribert-vollmer/
+
+I created a [live web evaluation service][evalservice] where you can write some
+code and have it either evaluated or transformed. Additionally, to keep
+yourself entertained, you can find some exercises on that website, too.
+
+  [evalservice]: http://loopgotowhile.eugenkiss.com/
 
 Execute `runtests.sh` to run the tests.
 
-About
------
 
-- Most of all about haskell how to elegentaly bla bla
+Background
+----------
+
+The purpose of these languages in Prof Dr. Heribert Vollmer's introductory
+course in theoretical computer science was to provide formal semantics for the
+specification of algorithms. Moreover, the languages were used to show the
+equivalence of turing complete languages. There was no executable
+implementation of these languages to my knowledge. Frankly, why should there
+have been? Their purpose didn't require that. However, I thought it would be an
+interesting exercise to create exectuable implementations for these languages.
+Even more so as I always wanted to create an executable implementation of
+a programming language and it was the perfect opportunity to get to know
+Haskell better.
+
+Most of all, I wanted to see how elegantly the problem of creating parsers,
+evaluators and "transformators" for these languages could be expressed in
+Haskell. And I'm quote pleased with the result although I acknowledge that
+there is much to improve especially regarding the code duplication for
+transforming each language to its strict subset. 
 
 
-Exercises
----------
+Design of the Code
+------------------
 
-All answers to this questions can be found out by either executing/transforming
-code or by looking at the source code of this project.
+There is only one evaluator: The evaluator for the While language. Loop and
+Goto are evaluated by first transforming them to While and then evaluating this
+While program.
 
-- Focus on Loop, mix the order so that not 5 of a category in a row,
-  only allow the features to use for writing code when transform to strict
-  was done for that feature
-    - ~ 5 write some code (euler, gti etc.)
-    - ~ 2 guess some code
-    - ~ 10 transform to strict (IF, arith)
-        - IF a && b then...
-        - IF a || b then...
-        - arithemtic expressions like x0 := x1 + x2
-        - Loop aexp DO ...
-- Focus on while
-    - Give an example of a while program that cannot be transformed to loop.
-    - ~ 2 write some code
-    - ~ 1 guess some code
-- Focus on goto
-    - ~ 2 write some code
-    - ~ 1 guess some code (gti)
-    - how can to transform "IF xy THEN HALT END" to strict?
-    - this question about relabeling
-- Alle drei susammen
-    - transform loop loop to while/goto
-    - how does the general transformation from while to goto work?
-    - how does the general transformation from goto to while work?
-    - Bonus: which of the languages are turing-complete? Proof in each case wether
-      it is or not.
+Shared functionality is outsourced to the "Shared" namespace in order to reduce
+code duplication and thus reuse more code.
 
-1. What is the general algorithm for correctly altering the labels when 
-   transforming an extended Goto program to the strict version?
+In reality there aren't only three languages but six; each language is given in
+a strict and extended version.
 
-   Try your algorithm on this code:
-       
-       - TODO: put this code with a special case here (see tests but simpler)
+I know that much can be improved. If you have suggestions then contact me,
+please.
 
-   To test if your transformation was correct simply compare the output of the
-   given code with the transformed code.
+*Note*: Some of the "to-strict-transformation"-tests don't use a hand-written
+strict program to test the transformations against but instead they test
+against a simplified extended program that is automatically transformed to
+a strict program. The reason for this decision is that a strict program would
+simply be too long and too convoluted to comprehend the applied
+transformations. Nonetheless, these tests are not useless as the preceding,
+more primitive tests "ensure" that the transformations of the simplified
+extended version to a strict version will be correct.
+
+
+
+Future Improvements
+-------------------
+
+### Code/Style Improvements
+
+- Remove code duplication especially regarding the code duplication for
+  transforming each language to its strict subset.
+- Some parts are quite ugly (see TODO's in the source code). Beautify!
+- Customization of Error Messages in Parsec leaves much to be desired.
+- Improve output of pretty printers (e.g. dismiss superfluous parentheses)
+
+
+
+### Feature Additions
+
+- Optimizations
+    - Remove redundancy (e.g. remove `x0 := x0 + 0`)
+    - Some transformations are more a proof of concept than practically useful.
+      E.g. try to evaluate `x0 := 4 / 2` with Goto. It takes ages. Idea:
+      Instead of first transforming the Goto code to While code and then
+      evaluating the While code, evaluate the Goto code directly.
+    - Other optimizations?
+
+- Function Definitions
+
+- Command line tools for each language
+    - Options
+        - -p, --prettyprint 
+        - -s, --strict
+        - -t [loop,goto,while], --transform [loop,goto,while] (list only those that are possible)
+        - -o, --output (default: stdout)
+    - Extract common functionality to Shared
+    - Create executables in cabal
+
+
+### Tests
+
+Test duplication could be greatly reduced if at first code duplication is
+reduced and the evaluation of Goto programs improves. This way, tests could be
+reused on the one hand and on the other a lot of "to-strict-transformation"
+tests for While and Goto could be removed since it would suffice to test Loop's
+"to-strict-transformations" thouroughly if all languages shared (almost) the
+same code. 
+
+
+Language Specifications
+-----------------------
+
+You can only implement functions whose domain and codomain are the natural
+numbers.
+
+
+### Loop
+
+#### Syntax
+
+#### Sematics
+
+#### Extensions
+
+
+### Goto
+
+#### Syntax
+
+#### Sematics
+
+The behaviour for using an unspecified label in a GOTO statement is undefined.
+
+#### Extensions
+
+optional labels, can be named like identifiers,
+HALT can come inside if body, rest like loope
+
+
+### While
+
+#### Syntax
+
+#### Sematics
+
+#### Extensions
+
+while head can have bexp, rest like loope

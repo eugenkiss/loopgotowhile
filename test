@@ -46,10 +46,6 @@ Where c is a previously unused variable that represents a "boolean value".
 
 --------------------------------------------
 
-The behaviour for using an unspecified label in a GOTO statement is undefined.
-
---------------------------------------------
-
 Some extended Goto programs are not at all optimized so that a simple
 division operation like x0 := x1 / x2 takes ridiculously long time to compute.
 
@@ -110,21 +106,10 @@ becomes (after "macro-expansion") -->
 where x5, c and t are unused variables.
 
 
------------------------------------------------
-INCLUDE statement
------------------------------------------------
-
-INCLUDE "std.loop" END
-
-As with functions later include statements may overwrite the definitions of the
-previous include statements.
-
-
 ----------------------------------------------------
 How to reuse code / data types? (Open data types?)
 --------------------------------------------------
 
-- Explain that it is a little like Blop Flop
 - Show languages and show how they are to be interpreted and transformed into Haskell structures.
 - Explain that the code examples are rather pseudocode where a lot of definitions are omitted to only show the core idea / problem
 
