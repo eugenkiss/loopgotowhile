@@ -50,10 +50,10 @@ type Env s = STRef s [(Index, STRef s Integer)]
 eval' :: Env s -> Stat -> ST s ()
 eval' env (Assign i j Plus c) = do
     xj <- getVar env j
-    setVar env i (xj + c)
+    setVar env i $! (xj + c)
 eval' env (Assign i j Minus c) = do
     xj <- getVar env j
-    setVar env i (max (xj - c) 0)
+    setVar env i $! (max (xj - c) 0)
 eval' env w@(While n stat) = do
     xn <- getVar env n
     unless (xn == 0) $ eval' env stat >> eval' env w
