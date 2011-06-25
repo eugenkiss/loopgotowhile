@@ -502,7 +502,7 @@ loopToGoto (Loop aexp stat) = do
         , Assign c (AOp "-" (Var c) (Const 1))
         , stat
         , Goto my
-        , Label mx $ Assign c (Var c) -- NOOP
+        , Label mx $ Assign c (Var c) -- NOP
         ]
 
 

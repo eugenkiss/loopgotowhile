@@ -7,14 +7,16 @@ module Language.LoopGotoWhile.Goto.Strict
     ) where
 
 import Control.Monad
+import Control.Monad.ST
+import Data.STRef
+import Data.Array.ST hiding (index)
+import Data.Maybe (fromJust)
+import Data.List (genericLength)
 
 import Text.ParserCombinators.Parsec hiding (parse, label)
 
 import Language.LoopGotoWhile.Shared.Util (mkStdParser, mkStdRunner)
 import Language.LoopGotoWhile.Goto.StrictAS
-import Language.LoopGotoWhile.Goto.Transform (toExtended, toWhile)
-import qualified Language.LoopGotoWhile.While.Strict as WhileS
-import qualified Language.LoopGotoWhile.While.Transform as WhileT
 
 
 -- * Main Functions
@@ -29,12 +31,63 @@ run = mkStdRunner parse eval
 -- | Given a strict Goto AST and a list of arguments evaluate the program
 -- and return the value of 'x0'.
 eval :: Program -> [Integer] -> Integer
-eval ast = WhileS.eval (WhileT.toStrict . toWhile . toExtended $ ast)
+eval ast args = runST $ do
+    envRef <- nullEnv
+    let (Seq stats) = case ast of
+                        Seq ss -> Seq ss
+                        other  -> Seq [other]
+    statsArr <- newListArray (1, genericLength stats) stats :: ST s (STArray s Integer Stat)
+    forM_ [1..length args] $ \i ->
+        setVar envRef (toInteger i) (args !! (i-1))
+    eval' envRef statsArr 1
+    getVar envRef 0
 
 -- | Given a string representation of a strict Goto program parse it and
 -- return either an error string or the AST.
 parse :: String -> Either String Program
 parse = mkStdParser parseStats (1, False) spaces
+
+
+-- * Evaluation
+--   ==========
+
+type Env s      = STRef s [(VIndex, STRef s Integer)]
+type StatsArr s = STArray s Integer Stat
+
+eval' :: Env s -> StatsArr s -> Integer -> ST s ()
+eval' env arr index = do
+    stat <- readArray arr index
+    case stat of
+      Assign l i j Plus c -> do
+          xj <- getVar env j
+          setVar env i $! (xj + c)
+          eval' env arr $ succ l
+      Assign l i j Minus c -> do
+          xj <- getVar env j
+          setVar env i $! (max (xj - c) 0)
+          eval' env arr $ succ l
+      IfGoto l1 i c l2 -> do
+          xi <- getVar env i
+          if xi == c 
+             then eval' env arr l2
+             else eval' env arr $ succ l1
+      Goto _ l -> eval' env arr l
+      Halt _   -> return ()
+      Seq  _   -> error "Impossible! Seq must not appear here!"
+
+-- TODO: Is there a better way to achieve this? Yes, see TODO
+nullEnv :: ST s (Env s)
+nullEnv = newSTRef =<< return . zip [0..] =<< lazyRefs
+  where lazyRefs = do
+          x  <- newSTRef 0
+          xs <- unsafeInterleaveST lazyRefs
+          return (x:xs)
+
+getVar :: Env s -> VIndex -> ST s Integer
+getVar envRef i = readSTRef envRef >>= readSTRef . fromJust . lookup i
+
+setVar :: Env s -> VIndex -> Integer -> ST s ()
+setVar envRef i v = readSTRef envRef >>= flip writeSTRef v . fromJust . lookup i 
 
 
 -- * Parsing

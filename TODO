@@ -1,8 +1,5 @@
 - finish readme 
-    - About
-        - http://en.wikipedia.org/wiki/BlooP_and_FlooP ?
     - Language Specifications from GTI Skript
-- it is not quite true that the domain is the natural number but rather NxNx..xN (because of args)
                 
 - Implement suggestions
 
@@ -17,9 +14,6 @@ How to improve the code?
 - Think about type class to get and change var names?
 - What advanced type features / language extensions / libraries could improve the code?
   Mainly remove code duplication by using abstractions?
-- Write dedicated evaluator for strict goto where every statement is an entry
-  in an array, so that it is faster to evaluator goto than to go the route to
-  translate it to while and then evaluate that.
 - Improve evaluator so that instead of creating a lazy infinite list of STRefs
   just initialize STRef with 0 when it is first used, so that it doesn't take
   so much time to create the list from 0 till n, where n is a big number

@@ -24,19 +24,16 @@ tests = [ testCase "goto/extended/parsing1" testParsing1
         , testCase "goto/extended/arithmetic5" testArithmetic5
         , testCase "goto/extended/arithmetic6" testArithmetic6
         , testCase "goto/extended/arithmetic7" testArithmetic7
-        -- Note: Tests arithmetic8,9,11,12.. take ridiculously long time but they
-        -- finish correctly eventually. Nonetheless I deactiveted them...
-        {-, testCase "goto/extended/arithmetic8" testArithmetic8-}
-        {-, testCase "goto/extended/arithmetic9" testArithmetic9-}
+        , testCase "goto/extended/arithmetic8" testArithmetic8
+        , testCase "goto/extended/arithmetic9" testArithmetic9
         , testCase "goto/extended/arithmetic10" testArithmetic10
-        {-, testCase "goto/extended/arithmetic11" testArithmetic11-}
-        {-, testCase "goto/extended/arithmetic12" testArithmetic12-}
-        {-, testCase "goto/extended/control1" testControl1-}
-        {-, testCase "goto/extended/control2" testControl2-}
-        {-, testCase "goto/extended/control3" testControl3-}
-        {-, testCase "goto/extended/control4" testControl4-}
-        {-, testCase "goto/extended/control5" testControl5-}
-        {-, testCase "goto/extended/control6" testControl6-}
+        , testCase "goto/extended/arithmetic11" testArithmetic11
+        , testCase "goto/extended/arithmetic12" testArithmetic12
+        , testCase "goto/extended/control2" testControl2
+        , testCase "goto/extended/control3" testControl3
+        , testCase "goto/extended/control4" testControl4
+        , testCase "goto/extended/control5" testControl5
+        , testCase "goto/extended/control6" testControl6
         ]
 
 
@@ -114,75 +111,75 @@ testArithmetic7
     = runProgram' [4, 0] "x0 := x1^x2"  
   @?= 1
 
-{-testArithmetic8 :: Assertion-}
-{-testArithmetic8 -}
-    {-= runProgram' [8, 2] "x0 := x1 / x2"  -}
-  {-@?= 4-}
+testArithmetic8 :: Assertion
+testArithmetic8
+    = runProgram' [8, 2] "x0 := x1 / x2" 
+  @?= 4
 
-{-testArithmetic9 :: Assertion-}
-{-testArithmetic9 -}
-    {-= runProgram' [9, 2] "x0 := x1 / x2"  -}
-  {-@?= 4-}
+testArithmetic9 :: Assertion
+testArithmetic9
+    = runProgram' [9, 2] "x0 := x1 / x2" 
+  @?= 4
 
 testArithmetic10 :: Assertion
 testArithmetic10 
     = runProgram' [0, 2] "x0 := x1 / x2"  
   @?= 0
 
-{-testArithmetic11 :: Assertion-}
-{-testArithmetic11 -}
-    {-= runProgram' [7, 3] "x0 := x1 % x2"  -}
-  {-@?= 1-}
+testArithmetic11 :: Assertion
+testArithmetic11
+    = runProgram' [7, 3] "x0 := x1 % x2" 
+  @?= 1
 
-{-testArithmetic12 :: Assertion-}
-{-testArithmetic12 -}
-    {-= runProgram' [10, 1] "x0 := 16 / 2^2 + (x1 * (x2 % 2)) - 1"  -}
-  {-@?= 13-}
+testArithmetic12 :: Assertion
+testArithmetic12
+    = runProgram' [10, 1] "x0 := 16 / 2^2 + (x1 * (x2 % 2)) - 1" 
+  @?= 13
 
-{-testControl2 :: Assertion-}
-{-testControl2 = runProgram' [10, 1] p @?= 13-}
- {-where p = "c := 16 / 2^2 + (x1 * (x2 % 2)) - 1;"       ++-}
-           {-"M1: c := c - 1;"                            ++-}
-           {-"x0 := x0 + 1;"                              ++ -}
-           {-"x0 := x0 - 1;"                              ++ -}
-           {-"x0 := x0 + 1;"                              ++-}
-           {-"IF c = 0 THEN HALT END;"                    ++-}
-           {-"GOTO M1"-}
+testControl2 :: Assertion
+testControl2 = runProgram' [10, 1] p @?= 13
+ where p = "c := 16 / 2^2 + (x1 * (x2 % 2)) - 1;" ++
+           "M1: c := c - 1;"                      ++
+           "x0 := x0 + 1;"                        ++
+           "x0 := x0 - 1;"                        ++
+           "x0 := x0 + 1;"                        ++
+           "IF c = 0 THEN HALT END;"              ++
+           "GOTO M1"
 
-{-testControl3 :: Assertion-}
-{-testControl3 = runProgram' [10, 1] p @?= 26-}
- {-where p = "c0 := 16 / 2^2 + (x1 * (x2 % 2)) - 1;"    ++-}
-           {-"M1: c0 := c0 - 1;"                        ++-}
-           {-"    c1 := 2;"                             ++-}
-           {-"M2:   c1 := c1 - 1;"                      ++-}
-           {-"      x0 := x0 + 1;"                      ++ -}
-           {-"      x0 := x0 - 1;"                      ++ -}
-           {-"      x0 := x0 + 1;"                      ++-}
-           {-"      IF c1 != 0 THEN GOTO M2 END;"       ++ -}
-           {-"    IF c0 != 0 THEN GOTO M1 END"-}
+testControl3 :: Assertion
+testControl3 = runProgram' [10, 1] p @?= 26
+ where p = "c0 := 16 / 2^2 + (x1 * (x2 % 2)) - 1;" ++
+           "M1: c0 := c0 - 1;"                     ++
+           "    c1 := 2;"                          ++
+           "M2:   c1 := c1 - 1;"                   ++
+           "      x0 := x0 + 1;"                   ++
+           "      x0 := x0 - 1;"                   ++
+           "      x0 := x0 + 1;"                   ++
+           "      IF c1 != 0 THEN GOTO M2 END;"    ++
+           "    IF c0 != 0 THEN GOTO M1 END"
 
-{-testControl4 :: Assertion-}
-{-testControl4 = runProgram' [] p @?= 1-}
-  {-where p = "IF 2 = 2 THEN x0 := 1 END" -}
+testControl4 :: Assertion
+testControl4 = runProgram' [] p @?= 1
+  where p = "IF 2 = 2 THEN x0 := 1 END"
 
-{-testControl5 :: Assertion-}
-{-testControl5 = runProgram' [] p @?= 1-}
-  {-where p = "IF 2 >= 2 THEN x0 := 1 ELSE x0 := 2 END" -}
+testControl5 :: Assertion
+testControl5 = runProgram' [] p @?= 1
+  where p = "IF 2 >= 2 THEN x0 := 1 ELSE x0 := 2 END"
 
-{-testControl6 :: Assertion-}
-{-testControl6 = runProgram' [10, 1] p @?= 42 -}
- {-where p = "IF !(16 / 2^2 + (x1 * (x2 % 2)) - 1 < 8 && x1 >= x2 || 2 = 2) THEN" ++-}
-           {-"      c := 2;"                                                          ++-}
-           {-"  M1: c  := c  - 1;"                                                  ++-}
-           {-"      x0 := x0 + 1;"                                                  ++ -}
-           {-"      x0 := x0 - 1;"                                                  ++ -}
-           {-"      x0 := x0 + 1;"                                                   ++-}
-           {-"      IF c != 0 THEN GOTO M1 END "                                      ++ -- space important!-}
-           {-"ELSE "                                                              ++-}
-           {-"  IF !(!(3 >= 3)) THEN"                                             ++-}
-           {-"    x0 := 42 "                                                      ++-}
-           {-"  END "                                                             ++ -- space important!-}
-           {-"END"                                                                -}
+testControl6 :: Assertion
+testControl6 = runProgram' [10, 1] p @?= 42
+ where p = "IF !(16 / 2^2 + (x1 * (x2 % 2)) - 1 < 8 && x1 >= x2 || 2 = 2) THEN" ++
+           "      c := 2;"                                                      ++
+           "  M1: c  := c  - 1;"                                                ++
+           "      x0 := x0 + 1;"                                                ++
+           "      x0 := x0 - 1;"                                                ++
+           "      x0 := x0 + 1;"                                                ++
+           "      IF c != 0 THEN GOTO M1 END "                                  ++ -- space important!
+           "ELSE "                                                              ++
+           "  IF !(!(3 >= 3)) THEN"                                             ++
+           "    x0 := 42 "                                                      ++
+           "  END "                                                             ++ -- space important!
+           "END"                                                               
 
 
 -- Helper

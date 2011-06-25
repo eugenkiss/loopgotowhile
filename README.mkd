@@ -40,15 +40,19 @@ transforming each language to its strict subset.
 Design of the Code
 ------------------
 
-As of now there is only one language that is evaluated directly: the strict
-While language. Loop and Goto are evaluated by first transforming them to While
-and then evaluating that While program.
+In reality there aren't three languages but six; each language is given in
+a strict and extended version. When being evaluated a language is first
+transformed into its strict subset - as it is easier to write an evaluator for
+the strict subset - and only then (indirectly) evaluated.
+
+Only strict Goto and strict While are evaluated directly. Loop is evaluated by
+first transforming it to While and then evaluating that While program. Although
+it would suffice to only have one directly evaluated language this is not done
+due to performance reasons. It is much faster to directly evaluate Goto as
+opposed to evaluating Goto through While.
 
 Shared functionality is outsourced to the "Shared" namespace in order to reduce
 code duplication and thus reuse more code.
-
-In reality there aren't only three languages but six; each language is given in
-a strict and extended version.
 
 I know that much can be improved. If you have suggestions then contact me,
 please.
@@ -70,13 +74,11 @@ Future Improvements
 ### Code/Style Improvements
 
 - Remove code duplication especially regarding the code duplication for
-  transforming each language to its strict subset.
+  transforming each language to its strict subset. Also, try to reduce
+  code duplication for While & Goto evaluation
 - Some parts are quite ugly (see TODO's in the source code). Beautify!
-- Goto programs take too much time to compute. Evaluate Goto directly instead
-  of taking the indirect route through While.
 - Customization of Error Messages in Parsec leaves much to be desired.
 - Improve output of pretty printers (e.g. dismiss superfluous parentheses)
-
 
 
 ### Feature Additions
@@ -103,11 +105,11 @@ Future Improvements
 ### Tests
 
 Test duplication/redundancy could be greatly reduced if at first code
-duplication is reduced and the evaluation speed of Goto programs improves. This
-way, tests could be reused on the one hand and on the other hand a lot of
-"to-strict-transformation" tests for While and Goto could be removed since it
-would suffice to test Loop's "to-strict-transformations" thouroughly if all
-languages shared (almost) the same code. 
+duplication is reduced. This way, tests could be reused on the one hand and on
+the other hand a lot of "to-strict-transformation" tests for While and Goto
+could be removed since it would suffice to test Loop's
+"to-strict-transformations" thouroughly if all languages shared (almost) the
+same code. 
 
 
 Language Specifications
