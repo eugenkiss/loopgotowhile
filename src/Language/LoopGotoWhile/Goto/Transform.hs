@@ -59,8 +59,15 @@ indexToLabel i = 'M' : show i
 toStrict :: Stat -> Strict.Stat
 toStrict = toStrictGoto 
          . flatten
-         . addHalt 
          . strictifyUndefLabels
+         . toStrictLabels
+         . removeRedundancy
+         -- It is important that addHalt comes before removeRedundancy due to
+         -- several special cases, e.g. the program which only consists of the
+         -- statement "x0 := x0 + 0", which would be removed and there wouldn't
+         -- be any program at all anymore, but "x0 := x0 + 0; HALT" would at
+         -- least become "HALT".
+         . addHalt
          . toStrictLabels 
          . toStrictStat 
          . toStrictVars
@@ -144,11 +151,13 @@ toStrictLabels stat = toStrictLabels $ Seq [stat]
 -- | Rename all occurences of 'from' as a label name to 'to' in the given AST.
 renameGotoLabel :: LIdent -> LIdent -> Stat -> Stat
 renameGotoLabel from to stat = case stat of
+    Assign v aexp        -> Assign v aexp
+    Halt                 -> Halt
     Goto l               -> Goto (r l)
     If bexp s Nothing    -> If bexp (rLab s) Nothing
     If bexp s1 (Just s2) -> If bexp (rLab s1) (Just (rLab s2))
     Label l s            -> Label l (rLab s)
-    x                    -> x
+    Seq stats            -> Seq (map rLab stats)
   where rLab = renameGotoLabel from to
         r l | l == from = to | otherwise = l
 
@@ -184,6 +193,50 @@ getLabelNames = nub . f
         f (Goto l)            = [l] 
         f (Label l stat)      = l : f stat
         f (Seq stats)         = concatMap f stats
+
+
+-- ** Remove Redundancy
+--    -----------------
+
+-- | During transformation some "NOPs" (like "x0 := x0 + 0") are used here and
+-- there to keep the transformation and thus the code simpler. However, as
+-- these statements are redundant they should be removed so as to unclutter the
+-- transformed code. Assume that the AST is in strict form and that it is
+-- a sequence of statements if only the singleton sequence.
+removeRedundancy :: Stat -> Stat
+removeRedundancy = removeRedundantStats . relabel
+  where relabel ast@(Seq _) = 
+            foldr (\(from, to) acc -> renameGotoLabel ('M':show from) ('M':show to) acc) 
+                  ast (relabelMappings 0 1 . reverse . naiveRelabelMappings $ ast)
+        relabel _ = error $ "This should be impossible"
+        -- relabelMappings is needed for the case of several successive "NOPs"
+        -- like "M3: x0 := x0 + 0; M4: x0 := x0 + 0; M5 := x0 := x0 + 0" (here
+        -- n would be 3 when the recursion reaches M3).
+        relabelMappings _    _ []         = []
+        relabelMappings lastIndex n ((i,j):xs) = 
+            if lastIndex - j == 1
+               then (i, j+n) : relabelMappings j (n+1) xs
+               else (i, j)   : relabelMappings j 1     xs
+        naiveRelabelMappings = map (\l -> (l, succ l)) . getRedundantLabelIndices
+
+removeRedundantStats :: Stat -> Stat
+removeRedundantStats (Seq stats) = Seq $ filter (not . isRedundant) $ stats
+removeRedundantStats _ = error $ "This should be impossible"
+
+-- TODO: Make languages instances of Traversable/Foldable so that I can use
+-- filter directly.
+getRedundantLabelIndices :: Stat -> [Integer]
+getRedundantLabelIndices (Seq stats) = 
+    map extractIndex . getLabelNames . Seq . filter isRedundant $ stats
+  where extractIndex (_:i) = (read i :: Integer)
+        extractIndex _     = error $ "This should be impossible"
+getRedundantLabelIndices _ = error $ "This should be impossible"
+
+isRedundant :: Stat -> Bool
+isRedundant (Label _ (Assign v0 (AOp _ (Var v1) (Const 0)))) 
+    | v0 == v1  = True
+    | otherwise = False
+isRedundant _ = False
 
 
 -- ** Renaming of Variables
@@ -234,7 +287,7 @@ getVarNames = nub . f
 toStrictStat :: Stat -> Stat
 toStrictStat ast =
     evalState (
-      evalStateT (toStrictStat' ast) (getStrictUnusedLabels (getLabelNames ast))
+      evalStateT (toStrictStat' $ ast) (getStrictUnusedLabels (getLabelNames ast))
     ) (T.getStrictUnusedVars (getVarNames ast))
 
 -- Since sometimes an unused variable/label is needed in order to correctly
@@ -420,7 +473,12 @@ toStrictStat' (If (BNegOp bexp) stat1 stat2) = toStrictStat' $ case bexp of
     BNegOp bexp' -> If bexp' stat1 stat2
     _ -> error "Impossible! Wrong operator!"
 -- Mx: P
-toStrictStat' (Label l stat) = liftM (Label l) (toStrictStat' stat)
+toStrictStat' s@(Label _ (Assign "x0" (AOp "+" (Var "x0") (Const 0)))) = 
+    return s
+toStrictStat' (Label l stat) = toStrictStat' $ Seq
+    [ Label l $ Assign "x0" $ AOp "+" (Var "x0") (Const 0) -- NOP 
+    , stat
+    ]
 -- P1; P2;...
 toStrictStat' (Seq stats) = liftM (Seq . flatten') $ mapM toStrictStat' stats
     where flatten' = foldr f []

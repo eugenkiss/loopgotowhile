@@ -81,10 +81,6 @@ Future Improvements
 
 ### Feature Additions
 
-- Optimizations
-    - Remove redundancy (e.g. remove `x0 := x0 + 0`)
-    - Other optimizations?
-
 - Function Definitions
 
 - Command line tools for each language
@@ -96,12 +92,19 @@ Future Improvements
     - Extract common functionality to Shared
     - Create executables in cabal
 
+- Optimizations
+    - Create benchmark suite
+    - Remove redundancy (e.g. remove `x0 := x0 + 0`) (already happened to Goto)
+    - Possibly improve efficiency of arithmetic functions (e.g. is / reduction
+      to strict code efficient or is it possible to make the algorithm faster)
+    - Other optimizations? Loop invariants?
+
 
 ### Tests
 
 Test duplication/redundancy could be greatly reduced if at first code
 duplication is reduced and the evaluation speed of Goto programs improves. This
-way, tests could be reused on the one hand and on the other a lot of
+way, tests could be reused on the one hand and on the other hand a lot of
 "to-strict-transformation" tests for While and Goto could be removed since it
 would suffice to test Loop's "to-strict-transformations" thouroughly if all
 languages shared (almost) the same code. 
@@ -111,8 +114,11 @@ Language Specifications
 -----------------------
 
 You can only implement functions whose codomain are the natural numbers and
-whose domain are the natural numbers to the power of n, where n is the number
-of arguments.
+whose domain are the natural numbers to the power of *n*, where *n* is the
+number of arguments. Also, every variable is by default initialized to `0` and
+arguments, if any, are stored in `x1,...,xn`. That means, providing the
+argument list `4,87,3` is the same as prepending `x1 := 4; x2 := 87, x3 := 3`
+to the top of your program.
 
 
 ### Loop

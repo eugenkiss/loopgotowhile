@@ -21,7 +21,7 @@ tests = [ testCase "goto/transform/strict/renaming1" testStrictRenaming1
         , testCase "goto/transform/strict/renaming5" testStrictRenaming5
         , testCase "goto/transform/strict/assignment1" testStrictAssignment1
         , testCase "goto/transform/strict/assignment2" testStrictAssignment2
-        {-, testCase "goto/transform/strict/arithmetic1" testStrictArithmetic1-}
+        , testCase "goto/transform/strict/arithmetic1" testStrictArithmetic1
         {-, testCase "goto/transform/strict/arithmetic2" testStrictArithmetic2-}
         {-, testCase "goto/transform/strict/arithmetic3" testStrictArithmetic3-}
         {-, testCase "goto/transform/strict/arithmetic4" testStrictArithmetic4-}
@@ -78,19 +78,19 @@ testStrictRenaming4 = toStrict (parseE e) @?= parseS s
   where e = "      quux := foo  + 1;"  ++
             "M3:   bar  := foo  + 2;"  ++
             "      x3   := quux + 0;"  ++
-            "ij8h: quux := quux + 0;"  ++
+            "ij8h: quux := quux + 1;"  ++
             "      x6   := bar  + 0;"  ++
             "GOTO ij8h"
         s = "M1:   x1   := x2   + 1;" ++
             "M2:   x4   := x2   + 2;" ++
             "M3:   x3   := x1   + 0;" ++
-            "M4:   x1   := x1   + 0;" ++
+            "M4:   x1   := x1   + 1;" ++
             "M5:   x6   := x4   + 0;" ++
             "M6: GOTO M4"
 
 -- This is a correct transformation of "x0 := x1 * x2". I encountered an
 -- logical error of mine for the label renaming and fixed the mistake. This is
--- therefore a regression test.
+-- therefore a regression test. TODO: Use easier test
 testStrictRenaming5 :: Assertion
 testStrictRenaming5 = toStrict (parseE e) @?= parseS s
   where e = "x3 := (x6 + 0);" ++
@@ -112,21 +112,19 @@ testStrictRenaming5 = toStrict (parseE e) @?= parseS s
             "M2: x4 := (x4 + 0);" ++
             "x0 := (x3 + 0);" ++
             "M15: HALT" 
-        s = "M1: x3 := x6 + 0;\n" ++
-            "M2: x4 := x2 + 0;\n " ++
-            "M3: IF x4 = 0 THEN GOTO M13 END;" ++
+        s = "M1: x3 := x6 + 0;" ++
+            "M2: x4 := x2 + 0;" ++
+            "M3: IF x4 = 0 THEN GOTO M11 END;" ++
             "M4: x4 := x4 - 1;" ++
-            "M5: x3 := x3 + 0;" ++
-            "M6: x5 := x1 + 0;" ++
-            "M7: IF x5 = 0 THEN GOTO M11 END;" ++
-            "M8: x5 := x5 - 1;" ++
-            "M9: x3 := x3 + 1;" ++
-            "M10: GOTO M7;" ++
-            "M11: x5 := x5 + 0;" ++
-            "M12: GOTO M3;" ++
-            "M13: x4 := x4 + 0;" ++
-            "M14: x0 := x3 + 0;" ++
-            "M15: HALT" 
+            "M5: x5 := x1 + 0;" ++
+            "M6: IF x5 = 0 THEN GOTO M10 END;" ++
+            "M7: x5 := x5 - 1;" ++
+            "M8: x3 := x3 + 1;" ++
+            "M9: GOTO M6;" ++
+            "M10: GOTO M3;" ++
+            "M11: x0 := x3 + 0;" ++
+            "M12: HALT"
+
 
 
 testStrictAssignment1 :: Assertion
@@ -139,14 +137,15 @@ testStrictAssignment2 = toStrict (parseE e) @?= parseS s
   where e = "x0 := 42"
         s = "M1: x0 := x1 + 42; M2: HALT" -- x1 is unused
 
-{-testStrictArithmetic1 = toStrict (parseE e) @?= parseS s-}
-  {-where e = "x0 := x1 + x2"-}
-        {-s = "x0 := x1 + 0;"    ++-}
-            {-"x3 := x2 + 0;"    ++ -- x3 is counter-}
-            {-"WHILE x3 != 0 DO" ++-}
-            {-"  x3 := x3 - 1;"  ++-}
-            {-"  x0 := x0 + 1"   ++-}
-            {-"END"            -}
+testStrictArithmetic1 = toStrict (parseE e) @?= parseS s
+  where e = "M1: x0 := x1 + x2" -- the M1 label is important as it is a regression test.
+        s = "M1: x0 := x1 + 0;" ++
+            "M2: x3 := x2 + 0;" ++ -- x3 is counter
+            "M3: IF x3 = 0 THEN GOTO M7 END;" ++
+            "M4: x3 := x3 - 1;" ++
+            "M5: x0 := x0 + 1;" ++
+            "M6: GOTO M3;"      ++
+            "M7: HALT"
 
 {-testStrictArithmetic2 = toStrict (parseE e) @?= parseS s-}
   {-where e = "x0 := x1 - x2"-}
@@ -512,13 +511,13 @@ testStrictControl17 = toStrict (parseE e1) @?= toStrict (parseE e2)
 -- any extended Goto feature in this test (again to keep it simple).
 testToWhile1 :: Assertion
 testToWhile1 = toWhile (parseE e1) @?= parseWhile e2
-  where e1 = "M1: x0 := x0 + 0;" ++
+  where e1 = "M1: x0 := x0 + 1;" ++
              "M2: GOTO M3;"      ++
              "M3: IF x0 = 0 THEN GOTO M4 END;" ++
              "M4: HALT"
         e2 = "x1 := 1;"        ++
              "WHILE x1 != 0 DO" ++
-             "  IF x1 = 1 THEN x0 := x0 + 0; x1 := x1 + 1 END;"  ++
+             "  IF x1 = 1 THEN x0 := x0 + 1; x1 := x1 + 1 END;"  ++
              "  IF x1 = 2 THEN x1 := 3 END;"  ++
              "  IF x1 = 3 THEN IF x0 = 0 THEN x1 := 4 ELSE x1 := x1 + 1 END END;" ++
              "  IF x1 = 4 THEN x1 := 0 END "  ++
@@ -544,3 +543,7 @@ parseWhile :: String -> WhileAS.Stat
 parseWhile code = case While.parse code of
     Left  err -> error err
     Right ast -> ast
+
+isRight :: Either a b -> Bool
+isRight (Right _) = True
+isRight _         = False
