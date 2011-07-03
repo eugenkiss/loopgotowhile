@@ -16,6 +16,25 @@ yourself entertained, you can find some exercises on that website, too.
 Execute `runtests.sh` to run the tests.
 
 
+Installation
+------------
+
+1. Install the [Haskell platform].  This will give you [GHC] and
+the [cabal-install] build tool.
+
+2. Clone this project and build it with `cabal`:
+
+        git clone git://github.com/eugenkiss/loopgotowhile.git
+        cd loopgotowhile-site
+        cabal install
+
+Now you can use this project as a library in Haskell source files.
+
+[GHC]: http://www.haskell.org/ghc/
+[Haskell platform]: http://hackage.haskell.org/platform/
+[cabal-install]: http://hackage.haskell.org/trac/hackage/wiki/CabalInstall
+
+
 Background
 ----------
 
@@ -120,38 +139,225 @@ whose domain are the natural numbers to the power of *n*, where *n* is the
 number of arguments. Also, every variable is by default initialized to `0` and
 arguments, if any, are stored in `x1,...,xn`. That means, providing the
 argument list `4,87,3` is the same as prepending `x1 := 4; x2 := 87, x3 := 3`
-to the top of your program.
+to the top of your program. Also, note that each language is case sensitive!
 
 
 ### Loop
 
+An exemplary (extended and pointless) Loop program looks as follows:
+
+    x4 := abc + y * 4;
+    IF hg != 7 || hg != 7 THEN 
+      LOOP x4 - (x4 + 1) DO
+        x0 := 1
+      END
+    ELSE 
+      x0 := counter
+    END
+
+
 #### Syntax
+
+The syntactical components are
+
+- Variables: `x0`,`x1`,`x2`,`x3`,`x4`,...
+- Constants: `0`,`1`,`2`,`3`,`4`,...
+- Operators: `+` and `-`
+- Separators: `;` and `:=`
+- Keywords: `LOOP`,`DO` and `END`
+
+Let `xi` and `xj` be variables and let `c` be a constant. Then
+
+    xi := xj + c
+
+and
+
+    xi := xj - c
+
+are Loop programs.
+
+
+Let `P1` and `P2` be Loop programs. Then
+
+    P1; P2
+
+is a Loop Program.
+
+
+Let `P` be a Loop program and let `xi` be a variable. Then
+
+    LOOP xi DO P END
+
+is a Loop Program.
+
 
 #### Sematics
 
+Let `P` be a Loop Program. `P` computes a function *f: ℕ^k → ℕ* like so: At the
+beginning of the computation the arguments *n1,...,nk ∈ ℕ* are to be found in
+the variables *x1,...,xk*. All other variables have the starting value 0. `P`
+is executed as follows:
+
+- By executing the program `xi := xj + c` `xi` is assigned the value of `xj + c`.
+- By executing the program `xi := xj - c` `xi` is assigned the value of `xj - c` 
+  if the value is non-negative. Otherwise `xi` is assigned 0.
+- By executing the program `P1; P2` at first `P1` is executed and after that
+  `P2`. 
+- The execution of the program `LOOP xi DO P' END` happens as follows: The
+  Program `P'` is executed as often as the value of `xi` has been at the
+  Beginning. That means, assignments to `xi` inside `P'` do *not* influence the
+  number of repetitions.
+
+The result of `P`'s execution is the value of `x0` or put in another way
+*f(n1,...,nk) = Value of x0 after execution*.
+
+A function *f: ℕ^k → ℕ* is called *Loop-computable* if there exists a Loop
+program that computes *f* as described above.
+
+
 #### Extensions
+
+Variables can be named arbitrarily. The only restrictions are that they begin
+with a letter and are not a keyword, e.g. `counter4` is a valid variable
+identifier. Apart from that the following Loop programs are all valid and have
+the respective intuitive semantics:
+
+- `xi := xj` (stands for `xi := xj + 0`)
+- `xi := c` (stands for `xi := xj + c` where `xj` is an unused variable)
+- `xi := aexp` where `aexp` is an arbitrary arithmetic expression consisting of
+  variables, constants, (optional) parantheses and operators
+  (`+`,`-`,`*`,`/`,`^` and `%`) like for example `y * (hg + 8 / x8) - 2 % 4`.
+- `LOOP aexp DO P END` where `aexp` is an arbitrary arithmetic expression.
+- `IF xi = 0 THEN P END`
+- `IF !(xi < xj && !(xk != 3)) THEN P1 ELSE P2 END`
+- `IF bexp THEN P END` where `bexp` is an arbitrary "boolean" expression
+  consisting of variables, constants, (optional) parantheses, relational
+  operators (`<`,`<=`,`>`,`>=`,`=` and `!=`) and boolean operators (`&&`,`||`
+  and `!`).
+- `IF bexp THEN P1 ELSE P2 END`
+
+Also, you are allowed to insert comments in your source code. The syntax is
+similar to Java's comment syntax, i.e. `//` introduces a comment
+whose scope ends at the next line and `/* */` can be used for
+multiline comments.
 
 
 ### Goto
 
+An exemplary (extended and pointless) Goto program looks as follows:
+
+    M1: x4 := abc + y * 4;
+    Cool: IF hg != 7 || hg != 7 THEN GOTO M1 ELSE HALT END;
+    GOTO Cool;
+    M42: HALT
+
+
 #### Syntax
+
+A Goto program is a succession
+
+    M1: A1;
+    M2: A2;
+       ⋮
+    Mk: Ak
+
+where `Mi` is a so called *label* and `Ai` is an instruction. Possible
+instructions are:
+
+- Value assignment: `xi := xj ± c` (`xi`, `xj` are variables, `c` is a constant)
+- Jump: `GOTO Mi`
+- Conditional Jump: `IF xi = c THEN GOTO Mj`
+- Stop instruction: `HALT`
+
+The last instruction is either a stop instruction or a jump.
+
 
 #### Sematics
 
-The behaviour for using an unspecified label in a GOTO statement is undefined.
+The execution of a Goto program starts with the first instruction. The
+execution of instructions of each type is as follows:
+
+- `xi := xj ± c`: The value of `xi` becomes `xj ± c` and the next instruction
+  is executed.
+- `GOTO Mi`: Proceed with the instruction with label `Mi`.
+- `IF xi = c THEN GOTO Mj`: If the value of `xi` is equal to `c` proceed with
+  the instruction with label `Mj`. Otherwise the next instruction is executed.
+- `HALT`: Stop the execution of the program.
+
+A jump to a label that is not existent in the program is not defined.
+
+Let `P` be a Goto Program. `P` computes a function *f: ℕ^k → ℕ* like so: At the
+beginning of the computation the arguments *n1,...,nk ∈ ℕ* are to be found in
+the variables *x1,...,xk*. All other variables have the starting value 0. 
+
+*f(n1,...,nk)* is the value of `x0` after execution if `P` terminates.
+Otherwise *f(n1,...,nk)* is undefined.
+
+A function *f: ℕ^k → ℕ* is called *Goto-computable* if there exists a Goto
+program that computes *f* as described above.
+
 
 #### Extensions
 
-optional labels, can be named like identifiers,
-HALT can come inside if body, rest like loope
+The program doesn't have to end with a jump or a stop instruction. Labels can
+be named arbitrarily or can be omitted altogether. Note, tough, that labels
+must be unique. `IF` statements must be completed with the lexeme `END` because
+they can contain several statements. Furthermore, a `HALT` statement may appear
+in the body of an `IF`.
+
+Apart from that, all extensions from the Loop language - except for the `LOOP`
+construct which is not present in the extended Goto language - apply to the
+extended Goto language. 
 
 
 ### While
 
+The While language is an extension of the Loop language. An exemplary (extended
+and pointless) While program looks as follows:
+
+    x4 := abc + y * 4;
+    IF hg != 7 || hg != 7 THEN 
+      WHILE !(x4 = x4 + 1) DO
+        x0 := 1
+      END
+    ELSE 
+      x0 := counter
+    END
+
+
 #### Syntax
+
+Apart from the `LOOP` construct which is not part of the While language the
+syntax is the same as that of Loop. Additionally, a new keyword (`WHILE`) with
+the accompanying syntactical construct, namely the `WHILE` loop, is introduced.
+
+Let `P` be a While program and let `xi` be a variable. Then
+
+    WHILE xi != 0 DO P END
+
+is a While program.
+
 
 #### Sematics
 
+The execution of `WHILE xi != 0 DO P END` happens so, that the program `P` is
+executed as long as the value of `xi` is not equal to 0.
+
+Let `P` be a While Program. `P` computes a function *f: ℕ^k → ℕ* like so: At
+the beginning of the computation the arguments *n1,...,nk ∈ ℕ* are to be found
+in the variables *x1,...,xk*. All other variables have the starting value 0.
+
+*f(n1,...,nk)* is the value of `x0` after execution if `P` terminates.
+Otherwise *f(n1,...,nk)* is undefined.
+
+A function *f: ℕ^k → ℕ* is called *While-computable* if there exists a While
+program that computes *f* as described above.
+
+
 #### Extensions
 
-while head can have bexp, rest like loope
+Apart from the `LOOP` related extensions - since the While language has no
+`LOOP` construct - the Loop extensions are all valid While extensions.
+Additionally, the head of a `WHILE` loop can have an arbitrary boolean
+expression, e.g. `WHILE xyz != 9 || u = 8 DO P END` is a valid (extended) While
+program.
