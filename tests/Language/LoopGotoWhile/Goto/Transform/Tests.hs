@@ -88,44 +88,31 @@ testStrictRenaming4 = toStrict (parseE e) @?= parseS s
             "M5:   x6   := x4   + 0;" ++
             "M6: GOTO M4"
 
--- This is a correct transformation of "x0 := x1 * x2". I encountered an
+-- This is a correct transformation of "x0 := x1 * x2". I encountered a
 -- logical error of mine for the label renaming and fixed the mistake. This is
--- therefore a regression test. TODO: Use easier test
+-- therefore a regression test. 
+-- The problem arises from the "clever" use of labels. The Label "M4" is
+-- actually on 5th position, which should lead to changing all "M4"s in the
+-- code to "M5". Then, on 6th position, there is the label "M5". Therefore, all
+-- "M5"s in the code should be changed to "M6"s. But wait! That would change
+-- the semantics of the program! The GOTO instruction on line 2 would not
+-- anymore "go to" line 5 but instead to line 6! Hence, already changed lines
+-- must be marked in order to prevent this problem from happening.
 testStrictRenaming5 :: Assertion
 testStrictRenaming5 = toStrict (parseE e) @?= parseS s
-  where e = "x3 := (x6 + 0);" ++
-            "x4 := (x2 + 0);" ++
-            "M1: IF x4 = 0 THEN\n" ++
-            "GOTO M2\n" ++
-            "END;" ++
-            "x4 := (x4 - 1);" ++
-            "x3 := (x3 + 0);" ++
-            "x5 := (x1 + 0);" ++
-            "M3: IF (x5 = 0) THEN\n" ++
-            "GOTO M4\n" ++
-            "END;" ++
-            "x5 := (x5 - 1);" ++
-            "x3 := (x3 + 1);" ++
-            "GOTO M3;" ++
-            "M4: x5 := (x5 + 0);" ++
-            "GOTO M1;" ++
-            "M2: x4 := (x4 + 0);" ++
-            "x0 := (x3 + 0);" ++
-            "M15: HALT" 
-        s = "M1: x3 := x6 + 0;" ++
-            "M2: x4 := x2 + 0;" ++
-            "M3: IF x4 = 0 THEN GOTO M11 END;" ++
-            "M4: x4 := x4 - 1;" ++
-            "M5: x5 := x1 + 0;" ++
-            "M6: IF x5 = 0 THEN GOTO M10 END;" ++
-            "M7: x5 := x5 - 1;" ++
-            "M8: x3 := x3 + 1;" ++
-            "M9: GOTO M6;" ++
-            "M10: GOTO M3;" ++
-            "M11: x0 := x3 + 0;" ++
-            "M12: HALT"
-
-
+  where e = "x0 := x1 + 3;"                   ++
+            "Nt: IF x0 = 5 THEN GOTO M4 END;" ++ 
+            "M3: x0 := x2 + 3;"               ++
+            "Mx: GOTO M5;"                    ++
+            "M4: x0 := x3 + 3;"               ++
+            "M5: x0 := x4 + 3" 
+        s = "M1: x0 := x1 + 3;"           ++
+            "M2: IF x0 = 5 THEN GOTO M5;" ++ 
+            "M3: x0 := x2 + 3;"           ++
+            "M4: GOTO M6;"                ++
+            "M5: x0 := x3 + 3;"           ++
+            "M6: x0 := x4 + 3;"           ++
+            "M7: HALT"
 
 testStrictAssignment1 :: Assertion
 testStrictAssignment1 = toStrict (parseE e) @?= parseS s
@@ -137,14 +124,16 @@ testStrictAssignment2 = toStrict (parseE e) @?= parseS s
   where e = "x0 := 42"
         s = "M1: x0 := x1 + 42; M2: HALT" -- x1 is unused
 
+-- Using the label "M1" for e is important because I found a bug in my code
+-- this way. Therefore, this is a regression test.
 testStrictArithmetic1 = toStrict (parseE e) @?= parseS s
-  where e = "M1: x0 := x1 + x2" -- the M1 label is important as it is a regression test.
-        s = "M1: x0 := x1 + 0;" ++
-            "M2: x3 := x2 + 0;" ++ -- x3 is counter
-            "M3: IF x3 = 0 THEN GOTO M7 END;" ++
-            "M4: x3 := x3 - 1;" ++
-            "M5: x0 := x0 + 1;" ++
-            "M6: GOTO M3;"      ++
+  where e = "M1: x0 := x1 + x2" 
+        s = "M1: x0 := x1 + 0;"           ++
+            "M2: x3 := x2 + 0;"           ++ -- x3 is counter
+            "M3: IF x3 = 0 THEN GOTO M7;" ++
+            "M4: x3 := x3 - 1;"           ++
+            "M5: x0 := x0 + 1;"           ++
+            "M6: GOTO M3;"                ++
             "M7: HALT"
 
 {-testStrictArithmetic2 = toStrict (parseE e) @?= parseS s-}

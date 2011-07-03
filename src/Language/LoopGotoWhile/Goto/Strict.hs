@@ -185,8 +185,6 @@ parseIfGoto = do
     spaces
     l2 <- parseLabel'
     spaces
-    _ <- string "END"
-    spaces
     updateState $ \(l,_) -> (l,False)
     return $ IfGoto l1 x c l2
 

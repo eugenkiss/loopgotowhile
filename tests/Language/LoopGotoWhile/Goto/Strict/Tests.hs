@@ -73,7 +73,7 @@ testArguments1
 testLooping1 :: Assertion
 testLooping1 = runProgram' [10] p @?= 10
   where p = "M1: x3 := x1 + 0;" ++ 
-            "M2: IF x3 = 0 THEN GOTO M7 END;" ++
+            "M2: IF x3 = 0 THEN GOTO M7;" ++
             "M3: x3 := x3 - 1; " ++
             "M4: x0 := x0 + 1; " ++
             "M5: x1 := x2 + 1;" ++
@@ -82,10 +82,10 @@ testLooping1 = runProgram' [10] p @?= 10
 
 testLooping2 :: Assertion
 testLooping2 = runProgram' [8,7] p @?= 8 * 7
-  where p = "M1: IF x1 = 0 THEN GOTO M9 END;" ++
+  where p = "M1: IF x1 = 0 THEN GOTO M9;" ++
             "M2: x1 := x1 - 1; " ++
             "M3: x3 := x2 + 0; " ++
-            "M4: IF x3 = 0 THEN GOTO M8 END;" ++
+            "M4: IF x3 = 0 THEN GOTO M8;" ++
             "M5: x3 := x3 - 1; " ++
             "M6: x0 := x0 + 1; " ++
             "M7: GOTO M4; " ++ 

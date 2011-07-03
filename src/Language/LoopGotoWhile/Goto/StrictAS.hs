@@ -41,7 +41,7 @@ prettyPrint (Assign l i j op c) =
     "x" ++ show j ++ " " ++ show op ++ " " ++ show c
 prettyPrint (IfGoto l1 i c l2) = 
     "M" ++ show l1 ++ ": " ++ 
-    "IF x" ++ show i ++ " = " ++ show c ++ " THEN GOTO M" ++ show l2 ++ " END"
+    "IF x" ++ show i ++ " = " ++ show c ++ " THEN GOTO M" ++ show l2
 prettyPrint (Goto l1 l2) = "M" ++ show l1 ++ ": " ++ "GOTO M" ++ show l2 
 prettyPrint (Halt l) = "M" ++ show l ++ ": HALT" 
 prettyPrint (Seq stats) = intercalate ";\n" . map prettyPrint $ stats 
