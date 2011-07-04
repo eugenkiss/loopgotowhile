@@ -15,7 +15,7 @@ import Text.ParserCombinators.Parsec.Language (javaStyle)
 
 import qualified Language.LoopGotoWhile.Goto.Strict as Strict
 import Language.LoopGotoWhile.Goto.ExtendedAS
-import Language.LoopGotoWhile.Goto.Transform (toStrict)
+import Language.LoopGotoWhile.Goto.Transform (toStrict, toExtended)
 import Language.LoopGotoWhile.Shared.Util (mkStdParser, mkStdRunner)
 import Language.LoopGotoWhile.Shared.Extended 
 
@@ -29,15 +29,18 @@ import Language.LoopGotoWhile.Shared.Extended
 run :: String -> [Integer] -> Either String Integer
 run = mkStdRunner parse eval
 
--- | Given an extended While AST and a list of arguments evaluate the program
+-- | Given an extended Goto AST and a list of arguments evaluate the program
 -- and return the value of 'x0'.
 eval :: Program -> [Integer] -> Integer
 eval ast = Strict.eval (toStrict ast)
 
--- | Given a string representation of an extended While program parse it and
--- return either an error string or the AST.
+-- | Given a string representation of an extended Goto program parse it and
+-- return either an error string or the AST. If given a valid strict Goto
+-- program parse it as well.
 parse :: String -> Either String Program
-parse = mkStdParser parseProgram [] whiteSpace
+parse s = case Strict.parse s of 
+            Right strictP -> Right $ toExtended strictP
+            Left  _       -> mkStdParser parseProgram [] whiteSpace s
 
 
 -- * Parsing

@@ -11,6 +11,7 @@ import Language.LoopGotoWhile.Goto.Extended (parse, eval)
 tests :: [Test]
 tests = [ testCase "goto/extended/parsing1" testParsing1
         , testCase "goto/extended/parsing2" testParsing2
+        , testCase "goto/extended/strict1" testStrict1
         , testCase "goto/extended/comments1" testComments1
         , testCase "goto/extended/comments2" testComments2
         , testCase "goto/extended/comments3" testComments3
@@ -44,6 +45,17 @@ testParsing1 = assertBool "" $ isLeft $ runProgram [] $ " "
 testParsing2 :: Assertion
 testParsing2 = assertBool "" $ isLeft $ runProgram [] $ 
     "M1: x0 := 0; M1: x0 := 1; HALT"
+
+-- A valid strict program should be a valid extended Program.
+testStrict1 :: Assertion
+testStrict1 = assertBool "" $ isRight $ runProgram [] $ 
+    "M1: x0 := x1 + 3;"           ++
+    "M2: IF x0 = 5 THEN GOTO M5;" ++
+    "M3: x0 := x2 + 3;"           ++
+    "M4: GOTO M6;"                ++
+    "M5: x0 := x3 + 3;"           ++
+    "M6: x0 := x4 + 3;"           ++
+    "M7: HALT"
 
 testComments1 :: Assertion
 testComments1 = assertBool "" $ isRight $ runProgram [] $
