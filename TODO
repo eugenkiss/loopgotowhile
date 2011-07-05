@@ -14,11 +14,6 @@ How to improve the code?
 - Think about type class to get and change var names?
 - What advanced type features / language extensions / libraries could improve the code?
   Mainly remove code duplication by using abstractions?
-- Improve evaluator so that instead of creating a lazy infinite list of STRefs
-  just initialize STRef with 0 when it is first used, so that it doesn't take
-  so much time to create the list from 0 till n, where n is a big number
-  (e.g. x999999999999999 takes too long) (Maybe Map)
-- unify naming convetions (e.g. if qualifed import AS than GotoAS not Goto)
 
 - http://sigusr2.net/2011/Apr/18/parser-combinators-made-simple.html
 - http://book.realworldhaskell.org/read/using-parsec.html
@@ -26,7 +21,6 @@ How to improve the code?
 - http://hackage.haskell.org/cgi-bin/hackage-scripts/package/language-python
 - http://hackage.haskell.org/packages/archive/pkg-list.html#cat:language
 - http://www.cs.uu.nl/wiki/UHC/WebHome
-
 
 
 What's next?

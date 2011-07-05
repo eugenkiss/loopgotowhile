@@ -94,10 +94,24 @@ Future Improvements
 
 - Remove code duplication especially regarding the code duplication for
   transforming each language to its strict subset. Also, try to reduce
-  code duplication for While & Goto evaluation
+  code duplication for While & Goto evaluation.
+
 - Some parts are quite ugly (see TODO's in the source code). Beautify!
 - Customization of Error Messages in Parsec leaves much to be desired.
-- Improve output of pretty printers (e.g. dismiss superfluous parentheses)
+- Improve output of pretty printers (e.g. dismiss superfluous parentheses).
+- Unify naming convetions (e.g. if qualifed import AS than GotoAS not Goto)
+
+- Use more type system constraints
+    - e.g. `GotoStat = Label GotoStat | ...`. This definition e.g. allows
+      `Label (Label ...)`, which is actually not allowed in the Goto
+      definition. If I could enforce the type to only allow nesting of 1 Level,
+      then the compiler would have saved me really early from a bug that I 
+      accidentelly discovered really late...
+    - The same is true for e.g. `GotoStat = Seq [GotoStat] | ...`. It shouldn't
+      be possible to define `Seq (Seq ...)` as that is the same as `Seq ...`
+      and some functions rely on the latter "normalized" form. It is error
+      prone to depend on not forgetting to normalize the data. Much better
+      would be an early compiler error message.
 
 
 ### Feature Additions
@@ -120,6 +134,8 @@ Future Improvements
     - Maybe write evaluator for extended While/Goto so that operations like
       x0 := x0 + x1 are one instruction and not a loop.
     - Maybe JIT?
+    - Maybe use hashtable implementation of Map in order to speed up lookup of
+      variables?
     - Other optimizations? Loop invariants (analysis)?
 
 

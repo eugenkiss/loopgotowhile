@@ -9,8 +9,8 @@ module Language.LoopGotoWhile.Goto.Strict
 import Control.Monad
 import Control.Monad.ST
 import Data.STRef
+import qualified Data.Map as M
 import Data.Array.ST hiding (index)
-import Data.Maybe (fromJust)
 import Data.List (genericLength)
 
 import Text.ParserCombinators.Parsec hiding (parse, label)
@@ -51,7 +51,7 @@ parse = mkStdParser parseStats (1, False) spaces
 -- * Evaluation
 --   ==========
 
-type Env s      = STRef s [(VIndex, STRef s Integer)]
+type Env s      = STRef s (M.Map VIndex (STRef s Integer))
 type StatsArr s = STArray s Integer Stat
 
 eval' :: Env s -> StatsArr s -> Integer -> ST s ()
@@ -75,19 +75,25 @@ eval' env arr index = do
       Halt _   -> return ()
       Seq  _   -> error "Impossible! Seq must not appear here!"
 
--- TODO: Is there a better way to achieve this? Yes, see TODO
 nullEnv :: ST s (Env s)
-nullEnv = newSTRef =<< return . zip [0..] =<< lazyRefs
-  where lazyRefs = do
-          x  <- newSTRef 0
-          xs <- unsafeInterleaveST lazyRefs
-          return (x:xs)
+nullEnv = newSTRef M.empty
 
 getVar :: Env s -> VIndex -> ST s Integer
-getVar envRef i = readSTRef envRef >>= readSTRef . fromJust . lookup i
+getVar envRef i = do
+    env <- readSTRef envRef
+    case M.lookup i env of
+      Just varRef -> readSTRef varRef
+      Nothing     -> do x <- newSTRef 0
+                        writeSTRef envRef (M.insert i x env) 
+                        return $ fromInteger 0
 
 setVar :: Env s -> VIndex -> Integer -> ST s ()
-setVar envRef i v = readSTRef envRef >>= flip writeSTRef v . fromJust . lookup i 
+setVar envRef i v = do
+    env <- readSTRef envRef
+    case M.lookup i env of
+      Just varRef -> writeSTRef varRef v
+      Nothing     -> do x <- newSTRef v
+                        writeSTRef envRef (M.insert i x env) 
 
 
 -- * Parsing
