@@ -115,10 +115,12 @@ Future Improvements
 
 - Optimizations
     - Create benchmark suite
-    - Remove redundancy (e.g. remove `x0 := x0 + 0`) (already happened to Goto)
-    - Possibly improve efficiency of arithmetic functions (e.g. is / reduction
+    - Maybe improve efficiency of arithmetic functions (e.g. is / reduction
       to strict code efficient or is it possible to make the algorithm faster)
-    - Other optimizations? Loop invariants?
+    - Maybe write evaluator for extended While/Goto so that operations like
+      x0 := x0 + x1 are one instruction and not a loop.
+    - Maybe JIT?
+    - Other optimizations? Loop invariants (analysis)?
 
 
 ### Tests

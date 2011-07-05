@@ -1,3 +1,7 @@
+- Remove "catch-all" (_) pattern matches that simply create an error, where the
+  function is indeed total.
+  This way, if I add constructors to the datatypes in the future the compiler
+  will emit a warning/error if certain functions that ought to be total are not.
 - Implement suggestions
 
         
