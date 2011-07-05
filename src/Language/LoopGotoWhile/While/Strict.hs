@@ -8,12 +8,11 @@ module Language.LoopGotoWhile.While.Strict
 
 import Control.Monad
 import Control.Monad.ST
-import Data.STRef
-import qualified Data.Map as M
 
 import Text.ParserCombinators.Parsec hiding (parse)
 
 import Language.LoopGotoWhile.Shared.Util (mkStdParser, mkStdRunner)
+import Language.LoopGotoWhile.Shared.Evaluation (Env, nullEnv, getVar, setVar)
 import Language.LoopGotoWhile.While.StrictAS
 
 
@@ -45,8 +44,6 @@ parse = mkStdParser parseStats () spaces
 -- * Evaluation
 --   ==========
 
-type Env s = STRef s (M.Map Index (STRef s Integer))
-
 eval' :: Env s -> Stat -> ST s ()
 eval' env (Assign i j Plus c) = do
     xj <- getVar env j
@@ -58,26 +55,6 @@ eval' env w@(While n stat) = do
     xn <- getVar env n
     unless (xn == 0) $ eval' env stat >> eval' env w
 eval' env (Seq stats) = mapM_ (eval' env) stats
-
-nullEnv :: ST s (Env s)
-nullEnv = newSTRef M.empty
-
-getVar :: Env s -> Index -> ST s Integer
-getVar envRef i = do
-    env <- readSTRef envRef
-    case M.lookup i env of
-      Just varRef -> readSTRef varRef
-      Nothing     -> do x <- newSTRef 0
-                        writeSTRef envRef (M.insert i x env) 
-                        return $ fromInteger 0
-
-setVar :: Env s -> Index -> Integer -> ST s ()
-setVar envRef i v = do
-    env <- readSTRef envRef
-    case M.lookup i env of
-      Just varRef -> writeSTRef varRef v
-      Nothing     -> do x <- newSTRef v
-                        writeSTRef envRef (M.insert i x env) 
 
 
 -- * Parsing
