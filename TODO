@@ -1,5 +1,6 @@
 - Remove "catch-all" (_) pattern matches that simply create an error, where the
-  function is indeed total.
+  function is indeed total. Thereto, operators should be an ADT instead of
+  strings!!!
   This way, if I add constructors to the datatypes in the future the compiler
   will emit a warning/error if certain functions that ought to be total are not.
 - Implement suggestions
@@ -11,6 +12,8 @@ How to improve the code?
 - Should this be put on hackage?
 - Is there a reason in favor of Parsec3 instead of 2?
 - Make languages instances of Foldable for e.g. easier renaming of vars?
+- When renaming, improve sharing?
+  http://blog.ezyang.com/2011/06/a-pattern-for-increasing-sharing/
 - Think about type class to get and change var names?
 - What advanced type features / language extensions / libraries could improve the code?
   Mainly remove code duplication by using abstractions?
@@ -26,14 +29,6 @@ How to improve the code?
 What's next?
 ============
 
-- Function definition for extended with "lexical" scope + nested functions
-    - look at the parsec examples to get some ideas but basically just a constructor Func FIdent Stat
-    - rather macros than real functions that are like nested programs
-      where parameters are x1,... and output is x0
-    - spricht etwas gegen verschachtelte funktionsdefinitionen? -> no
-    - need not only keep vars as state but also function definitions
-      and function definitions can be arbitrarily nested so keep tree of
-      function definitions
 - reduce tests size
     - either delete or add everywhere type Assertion
     - reuse strict tests for extended versions
@@ -42,3 +37,11 @@ What's next?
       constructs (should become the same)
     - reduce transformation to strict tests for goto and while to only specific
       things if it has been possible to factor out common strict transform. code
+- Function definition for extended with "lexical" scope + nested functions
+    - look at the parsec examples to get some ideas but basically just a constructor Func FIdent Stat
+    - rather macros than real functions that are like nested programs
+      where parameters are x1,... and output is x0
+    - spricht etwas gegen verschachtelte funktionsdefinitionen? -> no
+    - need not only keep vars as state but also function definitions
+      and function definitions can be arbitrarily nested so keep tree of
+      function definitions

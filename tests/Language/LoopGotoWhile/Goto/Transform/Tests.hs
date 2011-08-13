@@ -515,13 +515,13 @@ testToWhile1 = toWhile (parseE e1) @?= parseWhile e2
 
 -- Helper
 
--- | Parse a string representation of an extended While program and return the AST.
+-- | Parse a string representation of an extended Goto program and return the AST.
 parseE :: String -> Stat
 parseE code = case parse code of
     Left  err -> error err
     Right ast -> ast
 
--- | Parse a string representation of a strict While program and return the AST.
+-- | Parse a string representation of a strict Goto program and return the AST.
 parseS :: String -> StrictAS.Stat
 parseS code = case Strict.parse code of
     Left  err -> error err

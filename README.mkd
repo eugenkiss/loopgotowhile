@@ -116,8 +116,6 @@ Future Improvements
 
 ### Feature Additions
 
-- Function Definitions
-
 - Command line tools for each language
     - Options
         - -p, --prettyprint 
@@ -137,6 +135,8 @@ Future Improvements
     - Maybe use hashtable implementation of Map in order to speed up lookup of
       variables?
     - Other optimizations? Loop invariants (analysis)?
+
+- Function Definitions
 
 
 ### Tests
