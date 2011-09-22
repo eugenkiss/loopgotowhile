@@ -3,7 +3,6 @@
 module Language.LoopGotoWhile.Goto.Transform
     ( toExtended
     , toStrict
-    , toStrict'
     , toWhile
     -- Needed by While.Transform
     , TransformState
@@ -11,14 +10,10 @@ module Language.LoopGotoWhile.Goto.Transform
     , getStrictUnusedLabels
     ) where
 
-import Control.DeepSeq
 import Control.Monad
 import Control.Monad.State
-import Control.Monad.ST
-import Data.STRef
-import Data.Array.ST
 import Data.Char (isDigit)
-import Data.List ((\\), nub, foldl')
+import Data.List ((\\), nub)
 
 import qualified Language.LoopGotoWhile.While.ExtendedAS as While
 import qualified Language.LoopGotoWhile.Goto.StrictAS as Strict
@@ -73,20 +68,6 @@ toStrict = toStrictGoto
          . toStrictLabels
          . toStrictStat 
          . toStrictVars
-
--- | Transform an extended syntax tree into a strict one without changing the
--- semantics of the program and *not* trying to reduce redundant statements.
--- This has a dramatic speed advantage for the transformation but the resulting
--- code tends to be a bit longer.
-toStrict' :: Stat -> Strict.Stat
-toStrict' = toStrictGoto 
-          . flatten
-          . strictifyUndefLabels
-          . addHalt
-          . toStrictLabels
-          . toStrictStat 
-          . toStrictVars
-
 
 -- | Transform an extended syntax tree into a strict one. Assume that the AST
 -- is given in a directly translatable form.
@@ -144,45 +125,35 @@ strictifyUndefLabels ast = case ast of
         isStrictLab (x:xs) | not (null xs) = x == 'M' && all isDigit xs
         isStrictLab _      = False
 
--- TODO: This is one ugly ******.
-
 -- | Rename and reorder the labels in such a way that they are successive and
 -- the first label is "M1". Assume that the AST is already flat.
 toStrictLabels :: Stat -> Stat
-toStrictLabels (Seq stats) = Seq $ runST $ do
-    let statLen = length stats
-    stats' <- do return $ stats `deepseq` stats -- without that space leak!
-    arr <- newListArray (1, statLen) stats' :: ST s (STArray s Int Stat)
-    unmarked <- newSTRef [1..statLen] 
-    forM_ [1..statLen] $ \i -> do
-        let newLabel = 'M' : show i
-        e <- readArray arr i
-        case e of 
-            Label l stat -> when (l /= newLabel) $ do 
-                writeArray arr i $ Label newLabel stat
-                unmarked' <- readSTRef unmarked
-                forM_ unmarked' $ \j -> do
-                    oldStat <- readArray arr j
-                    let renamedStat = renameGotoLabel l newLabel oldStat  
-                    when (oldStat /= renamedStat) $ do
-                        writeArray arr j renamedStat
-                        modifySTRef unmarked $ \ls -> ls \\ [j]
-            labelless -> writeArray arr i $ Label newLabel labelless
-    getElems arr
-toStrictLabels stat = toStrictLabels $ Seq [stat]
+toStrictLabels (Seq stats) =
+    let (stats', mappings) = foldr step ([], []) $ zip stats labelStream
+    in  renameGotoLabels mappings (Seq stats')
+  where step (stat@(Label l s), l') (ss, mappings) 
+            | l == l'   = (stat        :ss,         mappings)
+            | otherwise = ((Label l' s):ss, (l, l'):mappings)
+        step (s, l') (ss, mappings) 
+                        = ((Label l' s):ss,         mappings)
+toStrictLabels stat = toStrictLabels (Seq [stat])
 
--- | Rename all occurences of 'from' as a label name to 'to' in the given AST.
-renameGotoLabel :: LIdent -> LIdent -> Stat -> Stat
-renameGotoLabel from to stat = case stat of
-    Assign v aexp        -> Assign v aexp
-    Halt                 -> Halt
-    Goto l               -> Goto (r l)
-    If bexp s Nothing    -> If bexp (rLab s) Nothing
-    If bexp s1 (Just s2) -> If bexp (rLab s1) (Just (rLab s2))
-    Label l s            -> Label l (rLab s)
-    Seq stats            -> Seq (map rLab stats)
-  where rLab = renameGotoLabel from to
-        r l | l == from = to | otherwise = l
+-- | Given a list of disjunctive rename mappings in the form [...,(from_i,
+-- to_i),...] rename all occurences of 'from_i' as a label name to 'to_i' in
+-- the given AST. Do not rename the labels denoting the statement, however.
+renameGotoLabels :: [(LIdent, LIdent)] -> Stat -> Stat
+renameGotoLabels mappings (Seq stats) = Seq $ map (rLab mappings) stats
+  where rLab as@((from,to):rs) stat = case stat of
+            Goto l               -> if l == from 
+                                       then Goto to
+                                       else rLab rs $ Goto l
+            If bexp s Nothing    -> If bexp (rLab as s) Nothing
+            If bexp s1 (Just s2) -> If bexp (rLab as s1) (Just (rLab as s2))
+            Label l s            -> Label l (rLab as s)
+            Seq _                -> error "Impossible" 
+            x                    -> x
+        rLab [] stat = stat
+renameGotoLabels rs x = renameGotoLabels rs $ Seq [x]
 
 -- | Return an unused label name and remove it from the list of unused label
 -- names (the state).
@@ -200,10 +171,13 @@ getUnusedLabel = do
 -- labels *without* any strict label that is already used in the program.
 getStrictUnusedLabels :: [LIdent] -> [LIdent]
 getStrictUnusedLabels used = labelStream \\ used
-  where labelStream = iterate (\l -> 'M' : succ' (tail l)) "M1"
-        succ' s     = show $ stoi s + 1
-          where stoi :: String -> Integer
-                stoi = read
+
+-- | Create an infinite list of consecutive, strict labels beginning with 'M1'.
+labelStream :: [LIdent]
+labelStream = iterate (\l -> 'M' : succ' (tail l)) "M1"
+  where succ' s = show $ stoi s + 1
+        stoi :: String -> Integer
+        stoi = read
 
 -- | Analyze the AST and return a list without duplicates of all used label
 -- names.
@@ -227,11 +201,9 @@ getLabelNames = nub . f
 -- transformed code. Assume that the AST is in strict form and that it is
 -- a sequence of statements if only the singleton sequence.
 removeRedundancy :: Stat -> Stat
-removeRedundancy = removeRedundantStats . relabel
-  where relabel ast@(Seq _) = foldr step ast mappings
-          where step (from, to) acc = acc `deepseq` renameGotoLabel ('M':show from) ('M':show to) acc
-                mappings = relabelMappings 0 1 . reverse . naiveRelabelMappings $ ast
-        relabel _ = error $ "This should be impossible"
+removeRedundancy ast = removeRedundantStats . renameGotoLabels mappings $ ast
+  where mappings = map (\(i,j) -> ('M':show i, 'M':show j)) 
+                 . relabelMappings 0 1 . reverse . naiveRelabelMappings $ ast
         -- relabelMappings is needed for the case of several successive "NOPs"
         -- like "M3: x0 := x0 + 0; M4: x0 := x0 + 0; M5 := x0 := x0 + 0" (here
         -- n would be 3 when the recursion reaches M3).

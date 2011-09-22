@@ -48,7 +48,6 @@ Library
         mtl == 2.0.*,
         containers == 0.4.*,
         array == 0.3.*,
-        deepseq == 1.1.*,
         parsec >= 2.1.0 && <= 3.1.1
     Exposed-Modules:
         Language.LoopGotoWhile.Loop.Strict
@@ -84,7 +83,6 @@ Executable test
         mtl == 2.0.*,
         containers == 0.4.*,
         array == 0.3.*,
-        deepseq == 1.1.*,
         parsec >= 2.1.0 && <= 3.1.1,
         test-framework == 0.4.*,
         test-framework-hunit == 0.2.*, 

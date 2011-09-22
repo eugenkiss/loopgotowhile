@@ -9,7 +9,6 @@ module Language.LoopGotoWhile.Goto.ExtendedAS
     , prettyPrint
     ) where
 
-import Control.DeepSeq
 import Data.Monoid
 import Data.List (intercalate)
 
@@ -36,14 +35,6 @@ instance Monoid Stat where
     (Seq stats)  `mappend` stat         = Seq $ stats ++ [stat]
     stat         `mappend` (Seq stats)  = Seq $ stat : stats
     stat1        `mappend` stat2        = Seq $ [stat1, stat2]
-
-instance NFData Stat where
-    rnf (Assign v a) = v `seq` a `seq` ()
-    rnf (If bexp stat mstat) = rnf bexp `seq` rnf stat `seq` rnf mstat `seq` ()
-    rnf (Goto l) = l `seq` ()
-    rnf Halt = ()
-    rnf (Label l stat) = l `seq` rnf stat `seq` ()
-    rnf (Seq stats) = rnf stats
 
 instance Show Stat where
     show = prettyPrint
