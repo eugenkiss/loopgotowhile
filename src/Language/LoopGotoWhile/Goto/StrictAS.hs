@@ -9,6 +9,7 @@ module Language.LoopGotoWhile.Goto.StrictAS
     , prettyPrint
     ) where
 
+import Data.Monoid
 import Data.List (intercalate)
 
 
@@ -33,6 +34,21 @@ data Stat
     deriving Eq
 
 
+instance Monoid Stat where
+    mempty = Seq []
+    (Seq stats1) `mappend` (Seq stats2) = Seq $ stats1 ++ stats2
+    (Seq stats)  `mappend` stat         = Seq $ stats ++ [stat]
+    stat         `mappend` (Seq stats)  = Seq $ stat : stats
+    stat1        `mappend` stat2        = Seq $ [stat1, stat2]
+
+instance Show Stat where
+    show = prettyPrint
+
+instance Show Op where
+    show Plus  = "+"
+    show Minus = "-"
+
+
 -- | Return a standard string representation of a strict Goto AST.
 prettyPrint :: Program -> String
 prettyPrint (Assign l i j op c) = 
@@ -45,10 +61,3 @@ prettyPrint (IfGoto l1 i c l2) =
 prettyPrint (Goto l1 l2) = "M" ++ show l1 ++ ": " ++ "GOTO M" ++ show l2 
 prettyPrint (Halt l) = "M" ++ show l ++ ": HALT" 
 prettyPrint (Seq stats) = intercalate ";\n" . map prettyPrint $ stats 
-             
-instance Show Stat where
-    show = prettyPrint
-
-instance Show Op where
-    show Plus  = "+"
-    show Minus = "-"

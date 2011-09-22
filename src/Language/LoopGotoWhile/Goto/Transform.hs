@@ -3,6 +3,7 @@
 module Language.LoopGotoWhile.Goto.Transform
     ( toExtended
     , toStrict
+    , toStrict'
     , toWhile
     -- Needed by While.Transform
     , TransformState
@@ -10,13 +11,14 @@ module Language.LoopGotoWhile.Goto.Transform
     , getStrictUnusedLabels
     ) where
 
+import Control.DeepSeq
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.ST
 import Data.STRef
 import Data.Array.ST
 import Data.Char (isDigit)
-import Data.List ((\\), nub)
+import Data.List ((\\), nub, foldl')
 
 import qualified Language.LoopGotoWhile.While.ExtendedAS as While
 import qualified Language.LoopGotoWhile.Goto.StrictAS as Strict
@@ -55,7 +57,7 @@ indexToLabel i = 'M' : show i
 --   ================================================
 
 -- | Transform an extended syntax tree into a strict one without changing the
--- semantics of the program.
+-- semantics of the program and trying to reduce redundant statements.
 toStrict :: Stat -> Strict.Stat
 toStrict = toStrictGoto 
          . flatten
@@ -63,14 +65,28 @@ toStrict = toStrictGoto
          . toStrictLabels
          . removeRedundancy
          -- It is important that addHalt comes before removeRedundancy due to
-         -- several special cases, e.g. the program which only consists of the
-         -- statement "x0 := x0 + 0", which would be removed and there wouldn't
-         -- be any program at all anymore, but "x0 := x0 + 0; HALT" would at
-         -- least become "HALT".
+         -- several special cases, e.g. a program which ends with a redundant
+         -- statement like "x0 := x0 + 0", which would be removed and GOTOs
+         -- pointing to that label would point into nothing (undefined). With
+         -- a HALT statement this case cannot happen. 
          . addHalt
-         . toStrictLabels 
+         . toStrictLabels
          . toStrictStat 
          . toStrictVars
+
+-- | Transform an extended syntax tree into a strict one without changing the
+-- semantics of the program and *not* trying to reduce redundant statements.
+-- This has a dramatic speed advantage for the transformation but the resulting
+-- code tends to be a bit longer.
+toStrict' :: Stat -> Strict.Stat
+toStrict' = toStrictGoto 
+          . flatten
+          . strictifyUndefLabels
+          . addHalt
+          . toStrictLabels
+          . toStrictStat 
+          . toStrictVars
+
 
 -- | Transform an extended syntax tree into a strict one. Assume that the AST
 -- is given in a directly translatable form.
@@ -97,13 +113,17 @@ flatten x         = x
 
 -- | Add a Halt statement to the end if needed.
 addHalt :: Stat -> Stat
-addHalt (Seq stats) = case lastStat of
-    Label _ (Goto _) -> Seq stats
-    Label _ Halt     -> Seq stats
-    _                -> Seq $ stats ++ [Label ('M' : show (l + 1)) Halt]
-  where l        = length stats
-        lastStat = last stats
-addHalt _ = error "Impossible! Must be a sequence!"
+addHalt (Seq stats) 
+  | null stats = Seq [haltStmnt]
+  | otherwise  = case lastStat of
+        Label _ (Goto _) -> Seq stats
+        Label _ Halt     -> Seq stats
+        _                -> Seq $ stats ++ [haltStmnt]
+  where l         = length stats
+        lastStat  = last stats
+        haltStmnt = Label ('M' : show (l + 1)) Halt
+addHalt stat = addHalt $ Seq [stat]
+{-addHalt _ = error "Impossible! Must be a sequence!"-}
 
 
 -- ** Renaming of Labels
@@ -130,24 +150,27 @@ strictifyUndefLabels ast = case ast of
 -- the first label is "M1". Assume that the AST is already flat.
 toStrictLabels :: Stat -> Stat
 toStrictLabels (Seq stats) = Seq $ runST $ do
-    arr <- newListArray (1, length stats) stats :: ST s (STArray s Int Stat)
-    marked <- newSTRef [] 
-    forM_ [1..length stats] $ \i -> do
-        e <- readArray arr i
+    let statLen = length stats
+    stats' <- do return $ stats `deepseq` stats -- without that space leak!
+    arr <- newListArray (1, statLen) stats' :: ST s (STArray s Int Stat)
+    unmarked <- newSTRef [1..statLen] 
+    forM_ [1..statLen] $ \i -> do
         let newLabel = 'M' : show i
+        e <- readArray arr i
         case e of 
-          Label l stat -> do 
-              writeArray arr i (Label newLabel stat) 
-              marked' <- readSTRef marked
-              forM_ ([1..length stats] \\ marked') $ \j -> do
-                  s <- readArray arr j
-                  let renamed = renameGotoLabel l newLabel s  
-                  writeArray arr j (renameGotoLabel l newLabel s) 
-                  when (s /= renamed) $ modifySTRef marked ((:) j)
-          other -> writeArray arr i (Label newLabel other) 
+            Label l stat -> when (l /= newLabel) $ do 
+                writeArray arr i $ Label newLabel stat
+                unmarked' <- readSTRef unmarked
+                forM_ unmarked' $ \j -> do
+                    oldStat <- readArray arr j
+                    let renamedStat = renameGotoLabel l newLabel oldStat  
+                    when (oldStat /= renamedStat) $ do
+                        writeArray arr j renamedStat
+                        modifySTRef unmarked $ \ls -> ls \\ [j]
+            labelless -> writeArray arr i $ Label newLabel labelless
     getElems arr
 toStrictLabels stat = toStrictLabels $ Seq [stat]
-                           
+
 -- | Rename all occurences of 'from' as a label name to 'to' in the given AST.
 renameGotoLabel :: LIdent -> LIdent -> Stat -> Stat
 renameGotoLabel from to stat = case stat of
@@ -205,14 +228,14 @@ getLabelNames = nub . f
 -- a sequence of statements if only the singleton sequence.
 removeRedundancy :: Stat -> Stat
 removeRedundancy = removeRedundantStats . relabel
-  where relabel ast@(Seq _) = 
-            foldr (\(from, to) acc -> renameGotoLabel ('M':show from) ('M':show to) acc) 
-                  ast (relabelMappings 0 1 . reverse . naiveRelabelMappings $ ast)
+  where relabel ast@(Seq _) = foldr step ast mappings
+          where step (from, to) acc = acc `deepseq` renameGotoLabel ('M':show from) ('M':show to) acc
+                mappings = relabelMappings 0 1 . reverse . naiveRelabelMappings $ ast
         relabel _ = error $ "This should be impossible"
         -- relabelMappings is needed for the case of several successive "NOPs"
         -- like "M3: x0 := x0 + 0; M4: x0 := x0 + 0; M5 := x0 := x0 + 0" (here
         -- n would be 3 when the recursion reaches M3).
-        relabelMappings _    _ []         = []
+        relabelMappings _    _ []              = []
         relabelMappings lastIndex n ((i,j):xs) = 
             if lastIndex - j == 1
                then (i, j+n) : relabelMappings j (n+1) xs
@@ -223,8 +246,6 @@ removeRedundantStats :: Stat -> Stat
 removeRedundantStats (Seq stats) = Seq $ filter (not . isRedundant) $ stats
 removeRedundantStats _ = error $ "This should be impossible"
 
--- TODO: Make languages instances of Traversable/Foldable so that I can use
--- filter directly.
 getRedundantLabelIndices :: Stat -> [Integer]
 getRedundantLabelIndices (Seq stats) = 
     map extractIndex . getLabelNames . Seq . filter isRedundant $ stats
