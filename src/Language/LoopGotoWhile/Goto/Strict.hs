@@ -8,7 +8,8 @@ module Language.LoopGotoWhile.Goto.Strict
 
 import Control.Monad
 import Control.Monad.ST
-import Data.Array.ST hiding (index)
+import qualified Data.Vector as V
+import Data.Vector ((!))
 import Data.List (genericLength)
 
 import Text.ParserCombinators.Parsec hiding (parse, label)
@@ -35,7 +36,7 @@ eval ast args = runST $ do
     let (Seq stats) = case ast of
                         Seq ss -> Seq ss
                         other  -> Seq [other]
-    statsArr <- newListArray (1, genericLength stats) stats :: ST s (STArray s Integer Stat)
+    let statsArr = V.fromList stats
     forM_ [1..length args] $ \i ->
         setVar envRef (toInteger i) (args !! (i-1))
     eval' envRef statsArr 1
@@ -50,11 +51,9 @@ parse = mkStdParser parseStats (1, False) spaces
 -- * Evaluation
 --   ==========
 
-type StatsArr s = STArray s Integer Stat
-
-eval' :: Env s -> StatsArr s -> Integer -> ST s ()
+eval' :: Env s -> V.Vector Stat -> Integer -> ST s ()
 eval' env arr index = do
-    stat <- readArray arr index
+    let stat = arr ! ((fromInteger index) - 1)
     case stat of
       Assign l i j Plus c -> do
           xj <- getVar env j
