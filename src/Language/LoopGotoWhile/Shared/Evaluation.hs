@@ -8,7 +8,7 @@ module Language.LoopGotoWhile.Shared.Evaluation
 
 import Control.Monad.ST
 import Data.STRef
-import qualified Data.Map as M
+import qualified Data.HashMap as M
 
 type Index = Integer
 
