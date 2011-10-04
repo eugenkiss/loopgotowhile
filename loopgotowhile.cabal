@@ -40,7 +40,7 @@ Flag test
     Default:     False
 
 Library
-    Ghc-Options:    -Wall
+    Ghc-Options:    -Wall -O2
     Hs-Source-Dirs: src
     Build-Depends:   
         base >= 4.0,
