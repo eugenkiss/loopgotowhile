@@ -40,11 +40,10 @@ Flag test
     Default:     False
 
 Library
-    Ghc-Options:    -Wall -O2
+    Ghc-Options:    -Wall -O2 -funbox-strict-fields
     Hs-Source-Dirs: src
-    Build-Depends:   
-        base >= 4.0,
-        haskell98 == 1.1.*,
+    Build-Depends:
+        base == 4.4.*,
         mtl == 2.0.*,
         containers == 0.4.*,
         array == 0.3.*,
@@ -80,8 +79,7 @@ Executable test
     if !flag(test)
         Buildable:  False
     Build-Depends:   
-        base >= 4.0,
-        haskell98 == 1.1.*,
+        base == 4.4.*,
         mtl == 2.0.*,
         containers == 0.4.*,
         array == 0.3.*,
